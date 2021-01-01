@@ -1,9 +1,45 @@
-use crate::ast::{Term};
+use crate::ast::*;
 use crate::symbol::Symbol;
 
 grammar;
 
+Comma1<T>: Vec<T> = { 
+    <x:T> <xs:("," <T>)*> ","? => {
+        let mut v = vec![x];
+        v.extend(xs);
+        v
+    }
+}
+
+Comma<T>: Vec<T> = { 
+    <v:(<T> ",")*> <e:T?> => match e { 
+        None => v,
+        Some(e) => {
+            let mut v = v;
+            v.push(e);
+            v
+        }
+    }
+}
+
+pub Program: ProgramClauses = <(<Clause> ".")*> => ProgramClauses::new(<>);
+
+pub Goal: Goal = {
+    <Term> => Goal::Atom(<>),
+}
+
+pub Clause: Clause = {
+    <Term> ":-" <Comma1<Goal>> => Clause::Horn(<>),
+    <Term> => Clause::Horn(<>, vec![]),
+}
+
+pub Symbol: Symbol = <s:r"[a-z]\w*"> => Symbol::intern(s);
+pub Var: Var = <v:r"[A-Z]\w*"> => Var::new(Symbol::intern(v));
+pub Atom: Atom = <Symbol> => Atom::new(<>);
+
 pub Term: Term = {
-    <s:r"[a-z]\w+"> => Term::Var(Symbol::intern(s)),
+    <Atom> "(" <Comma1<Term>> ")" => Term::Compound(<>),
+    <Atom> => Term::Atom(<>),
+    <Var> => Term::Var(<>),
 }
 

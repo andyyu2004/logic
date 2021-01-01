@@ -6,6 +6,10 @@ use typed_arena::Arena as TypedArena;
 pub struct Symbol(usize);
 
 impl Symbol {
+    pub fn as_str(self) -> &'static str {
+        with_interner(|interner| interner.get_str(self))
+    }
+
     pub fn intern(s: &str) -> Symbol {
         with_interner(|interner| interner.intern(s))
     }
