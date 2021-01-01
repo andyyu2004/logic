@@ -25,7 +25,7 @@ Comma<T>: Vec<T> = {
 pub Program: ProgramClauses = <(<Clause> ".")*> => ProgramClauses::new(<>);
 
 pub Goal: Goal = {
-    <Term> => Goal::Atom(<>),
+    <Term> => Goal::Term(<>),
 }
 
 pub Clause: Clause = {

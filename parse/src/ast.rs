@@ -1,4 +1,5 @@
 use crate::symbol::Symbol;
+use std::fmt::{self, Display, Formatter};
 
 /// top level program
 #[derive(Debug)]
@@ -14,10 +15,20 @@ impl ProgramClauses {
 
 #[derive(Debug)]
 pub enum Goal {
-    Atom(Term),
+    Term(Term),
     And(Box<Goal>, Box<Goal>),
     Or(Box<Goal>, Box<Goal>),
     // todo exists, impl, forall
+}
+
+impl Display for Goal {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Goal::Term(term) => write!(f, "{}", term),
+            Goal::And(lhs, rhs) => write!(f, "{} & {}", lhs, rhs),
+            Goal::Or(lhs, rhs) => write!(f, "{} | {}", lhs, rhs),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -28,6 +39,20 @@ pub enum Clause {
     /// <clause>,<clause>
     And(Box<Clause>, Box<Clause>),
     // todo forall
+}
+
+impl Display for Clause {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Clause::Horn(term, goals) =>
+                if goals.is_empty() {
+                    write!(f, "{}", term)
+                } else {
+                    write!(f, "{} :- {}", term, util::join(goals, ", "))
+                },
+            Clause::And(lhs, rhs) => write!(f, "{} & {}", lhs, rhs),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -41,8 +66,20 @@ impl Var {
     }
 }
 
+impl Display for Var {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[derive(Debug)]
 pub struct Atom(Symbol);
+
+impl Display for Atom {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 impl Atom {
     pub fn new(symbol: Symbol) -> Self {
@@ -58,4 +95,14 @@ pub enum Term {
     Atom(Atom),
     Var(Var),
     Compound(Atom, Vec<Term>),
+}
+
+impl Display for Term {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Term::Atom(atom) => write!(f, "{}", atom),
+            Term::Var(var) => write!(f, "{}", var),
+            Term::Compound(atom, terms) => write!(f, "{}({})", atom, util::join(terms, ",")),
+        }
+    }
 }

@@ -8,6 +8,7 @@ edition = "2018"
 lalrpop = "0.19.3"
 
 [dependencies]
+util = { path = "../util" }
 lalrpop-util = "0.19.2"
 regex = "1"
 rustc-hash = "1"

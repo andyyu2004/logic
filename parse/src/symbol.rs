@@ -1,9 +1,16 @@
 use rustc_hash::FxHashMap;
 use std::cell::RefCell;
+use std::fmt::{self, Display, Formatter};
 use typed_arena::Arena as TypedArena;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Symbol(usize);
+
+impl Display for Symbol {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
 
 impl Symbol {
     pub fn as_str(self) -> &'static str {
