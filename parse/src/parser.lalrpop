@@ -1,0 +1,9 @@
+use crate::ast::{Term};
+use crate::symbol::Symbol;
+
+grammar;
+
+pub Term: Term = {
+    <s:r"[a-z]\w+"> => Term::Var(Symbol::intern(s)),
+}
+
