@@ -7,6 +7,15 @@ pub struct ProgramClauses {
     clauses: Vec<Clause>,
 }
 
+impl Display for ProgramClauses {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        for clause in &self.clauses {
+            writeln!(f, "{}.", clause)?;
+        }
+        Ok(())
+    }
+}
+
 impl ProgramClauses {
     pub fn new(clauses: Vec<Clause>) -> Self {
         Self { clauses }
@@ -33,11 +42,11 @@ impl Display for Goal {
 
 #[derive(Debug)]
 pub enum Clause {
-    /// <clause> :- <goals>
+    /// <domain-goal> :- <goals>
     /// empty goal means the implication is a fact
     Horn(Term, Vec<Goal>),
-    /// <clause>,<clause>
-    And(Box<Clause>, Box<Clause>),
+    // <clause>,<clause>
+    // And(Box<Clause>, Box<Clause>),
     // todo forall
 }
 
@@ -50,18 +59,17 @@ impl Display for Clause {
                 } else {
                     write!(f, "{} :- {}", term, util::join(goals, ", "))
                 },
-            Clause::And(lhs, rhs) => write!(f, "{} & {}", lhs, rhs),
+            // Clause::And(lhs, rhs) => write!(f, "{} & {}", lhs, rhs),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, Hash, PartialOrd, Ord, PartialEq, Eq)]
 pub struct Var(Symbol);
 
 impl Var {
     pub fn new(symbol: Symbol) -> Self {
-        // variables must start with an uppercase
-        debug_assert!(symbol.as_str().chars().next().unwrap().is_ascii_uppercase());
+        assert!(symbol.as_str().chars().next().unwrap() == '?');
         Self(symbol)
     }
 }
@@ -72,7 +80,7 @@ impl Display for Var {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, Hash, PartialOrd, Ord, PartialEq, Eq)]
 pub struct Atom(Symbol);
 
 impl Display for Atom {
@@ -83,8 +91,6 @@ impl Display for Atom {
 
 impl Atom {
     pub fn new(symbol: Symbol) -> Self {
-        // variables must start with an lowercase
-        debug_assert!(symbol.as_str().chars().next().unwrap().is_ascii_lowercase());
         Self(symbol)
     }
 }
@@ -94,7 +100,7 @@ impl Atom {
 pub enum Term {
     Atom(Atom),
     Var(Var),
-    Compound(Atom, Vec<Term>),
+    Structure(Atom, Vec<Term>),
 }
 
 impl Display for Term {
@@ -102,7 +108,7 @@ impl Display for Term {
         match self {
             Term::Atom(atom) => write!(f, "{}", atom),
             Term::Var(var) => write!(f, "{}", var),
-            Term::Compound(atom, terms) => write!(f, "{}({})", atom, util::join(terms, ",")),
+            Term::Structure(atom, terms) => write!(f, "{}({})", atom, util::join(terms, ",")),
         }
     }
 }

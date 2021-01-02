@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::fmt::{self, Display, Formatter};
 use typed_arena::Arena as TypedArena;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash, PartialOrd, Ord, PartialEq, Eq)]
 pub struct Symbol(usize);
 
 impl Display for Symbol {

@@ -33,12 +33,12 @@ pub Clause: Clause = {
     <Term> => Clause::Horn(<>, vec![]),
 }
 
-pub Symbol: Symbol = <s:r"[a-z]\w*"> => Symbol::intern(s);
-pub Var: Var = <v:r"[A-Z]\w*"> => Var::new(Symbol::intern(v));
+pub Symbol: Symbol = <s:r"\w+"> => Symbol::intern(s);
+pub Var: Var = <v:r"\?\w*"> => Var::new(Symbol::intern(v));
 pub Atom: Atom = <Symbol> => Atom::new(<>);
 
 pub Term: Term = {
-    <Atom> "(" <Comma1<Term>> ")" => Term::Compound(<>),
+    <Atom> "(" <Comma1<Term>> ")" => Term::Structure(<>),
     <Atom> => Term::Atom(<>),
     <Var> => Term::Var(<>),
 }

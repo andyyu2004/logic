@@ -1,7 +1,11 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
+use ir::*;
+
+pub trait Solver<I: Interner> {
+    fn solve(&mut self, db: Database, goal: &Goal<I>) -> Solution {
+        todo!()
     }
 }
+
+pub struct Database {}
+
+pub enum Solution {}

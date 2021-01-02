@@ -1,0 +1,13 @@
+#V2
+hello
+c
+cool(jen)
+cool(X)
+cool(jen).
+cool(jen) :- cool(bob)
+cool(jen).
+cool(jen)
+cool(jen) :- bob
+cool(jen)
+cool(jen) :- cool(jen)
+cool(X)
