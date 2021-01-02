@@ -1,3 +1,2 @@
-parent(annie, bob).
-parent(bob, charlie).
-ancestor(X,Z) :- parent(X,Y), ancestor(Y,Z).
+cool(jen)
+cool(bob)

@@ -2,27 +2,28 @@ pub mod ast;
 mod parser;
 mod symbol;
 
+use ast::*;
 pub use ast::{Atom, Var};
 pub use symbol::Symbol;
 
-pub fn parse<'a, T, E: std::fmt::Display>(
+pub type ParseResult<T> = Result<T, String>;
+
+fn parse<'a, T, E: std::fmt::Display>(
     src: &'a str,
     parser: impl FnOnce(&'a str) -> Result<T, E>,
-) -> Option<T> {
-    match parser(src) {
-        Ok(clause) => Some(clause),
-        Err(err) => {
-            eprintln!("{}", err);
-            None
-        }
-    }
+) -> ParseResult<T> {
+    parser(src).map_err(|err| err.to_string())
 }
 
-pub fn parse_clause(src: &str) -> Option<ast::Clause> {
+pub fn parse_program(src: &str) -> ParseResult<Program> {
+    parse(src, |src| parser::ProgramParser::new().parse(src))
+}
+
+pub fn parse_clause(src: &str) -> ParseResult<Clause> {
     parse(src, |src| parser::ClauseParser::new().parse(src))
 }
 
-pub fn parse_goal(src: &str) -> Option<ast::Goal> {
+pub fn parse_goal(src: &str) -> ParseResult<Goal> {
     parse(src, |src| parser::GoalParser::new().parse(src))
 }
 
@@ -46,8 +47,6 @@ mod tests {
 
     #[test]
     fn parse_program_test() {
-        let _prog = parser::ProgramParser::new()
-            .parse("cool(jen). cool(bob). cool(X) :- cool(jen).")
-            .unwrap();
+        let _prog = parse_program("cool(jen). cool(bob). cool(X) :- cool(jen).").unwrap();
     }
 }

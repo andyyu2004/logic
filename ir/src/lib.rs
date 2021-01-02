@@ -3,54 +3,56 @@
 mod ast_lowering;
 mod interner;
 
+pub use ast_lowering::lower_ast;
 pub use interner::Interner;
 
 use parse::{Atom, Var};
-use std::fmt::{self, Debug, Display, Formatter};
+use std::fmt::{self, Debug, Formatter};
 use std::rc::Rc;
 
+/// an interner that doesn't really intern anything
 #[derive(Debug, Clone, Eq, PartialEq, Ord, Hash, PartialOrd, Copy)]
-struct IRInterner;
+pub struct IRInterner;
 
 impl Interner for IRInterner {
     type InternedClause = Rc<Clause<Self>>;
-    type InternedClauses = Vec<Clause<Self>>;
+    type InternedClauses = Vec<InternedClause<Self>>;
     type InternedGoal = Rc<Goal<Self>>;
     type InternedGoals = Vec<InternedGoal<Self>>;
     type InternedTerm = Rc<Term<Self>>;
     type InternedTerms = Vec<InternedTerm<Self>>;
 
     fn intern_goal(&self, goal: Goal<Self>) -> Self::InternedGoal {
-        todo!()
+        Rc::new(goal)
     }
 
     fn intern_clause(&self, clause: Clause<Self>) -> Self::InternedClause {
-        todo!()
+        Rc::new(clause)
     }
 
     fn intern_clauses(
         &self,
-        clause: impl IntoIterator<Item = Clause<Self>>,
-    ) -> Self::InternedClause {
-        todo!()
+        clauses: impl IntoIterator<Item = InternedClause<Self>>,
+    ) -> Self::InternedClauses {
+        clauses.into_iter().collect()
     }
 
     fn intern_term(&self, term: Term<Self>) -> Self::InternedTerm {
-        todo!()
+        Rc::new(term)
     }
 
     fn intern_goals(
         &self,
         goals: impl IntoIterator<Item = InternedGoal<Self>>,
     ) -> Self::InternedGoals {
-        todo!()
+        goals.into_iter().collect()
     }
 
     fn intern_terms(
         &self,
         terms: impl IntoIterator<Item = InternedTerm<Self>>,
     ) -> Self::InternedTerms {
-        todo!()
+        terms.into_iter().collect()
     }
 }
 
@@ -65,20 +67,21 @@ impl<T> Interned<T> {
     }
 }
 
-pub type InternedClause<I> = Interned<<I as Interner>::InternedClause>;
-pub type InternedGoal<I> = Interned<<I as Interner>::InternedGoal>;
-pub type InternedGoals<I> = Interned<<I as Interner>::InternedGoals>;
-pub type InternedTerm<I> = Interned<<I as Interner>::InternedTerm>;
-pub type InternedTerms<I> = Interned<<I as Interner>::InternedTerms>;
+pub type InternedClause<I> = <I as Interner>::InternedClause;
+pub type InternedClauses<I> = <I as Interner>::InternedClauses;
+pub type InternedGoal<I> = <I as Interner>::InternedGoal;
+pub type InternedGoals<I> = <I as Interner>::InternedGoals;
+pub type InternedTerm<I> = <I as Interner>::InternedTerm;
+pub type InternedTerms<I> = <I as Interner>::InternedTerms;
 
 /// top level program
-#[derive(Debug)]
-pub struct ProgramClauses<I: Interner> {
-    clauses: Vec<Clause<I>>,
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct Program<I: Interner> {
+    clauses: InternedClauses<I>,
 }
 
-impl<I: Interner> ProgramClauses<I> {
-    pub fn new(clauses: Vec<Clause<I>>) -> Self {
+impl<I: Interner> Program<I> {
+    pub fn new(clauses: InternedClauses<I>) -> Self {
         Self { clauses }
     }
 }

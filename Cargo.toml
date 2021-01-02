@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "logic",
+    "error",
     "engine",
     "ir",
     "parse",

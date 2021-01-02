@@ -2,27 +2,40 @@ use crate::symbol::Symbol;
 use std::fmt::{self, Display, Formatter};
 
 /// top level program
-#[derive(Debug)]
-pub struct ProgramClauses {
-    clauses: Vec<Clause>,
+#[derive(Debug, Eq, Clone, PartialEq)]
+pub struct Program {
+    pub items: Vec<Item>,
 }
 
-impl Display for ProgramClauses {
+impl Display for Program {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        for clause in &self.clauses {
-            writeln!(f, "{}.", clause)?;
+        for item in &self.items {
+            writeln!(f, "{}.", item)?;
         }
         Ok(())
     }
 }
 
-impl ProgramClauses {
-    pub fn new(clauses: Vec<Clause>) -> Self {
-        Self { clauses }
+impl Program {
+    pub fn new(items: Vec<Item>) -> Self {
+        Self { items }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, Clone, PartialEq)]
+pub enum Item {
+    Clause(Clause),
+}
+
+impl Display for Item {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Item::Clause(clause) => write!(f, "{}", clause),
+        }
+    }
+}
+
+#[derive(Debug, Eq, Clone, PartialEq)]
 pub enum Goal {
     Term(Term),
     And(Box<Goal>, Box<Goal>),
@@ -40,7 +53,7 @@ impl Display for Goal {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, Clone, PartialEq)]
 pub enum Clause {
     /// <domain-goal> :- <goals>
     /// empty goal means the implication is a fact
@@ -96,7 +109,7 @@ impl Atom {
 }
 
 /// a.k.a DomainGoal
-#[derive(Debug)]
+#[derive(Debug, Eq, Clone, PartialEq)]
 pub enum Term {
     Atom(Atom),
     Var(Var),

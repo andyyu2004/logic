@@ -3,6 +3,7 @@ use crate::symbol::Symbol;
 
 grammar;
 
+
 Comma1<T>: Vec<T> = { 
     <x:T> <xs:("," <T>)*> ","? => {
         let mut v = vec![x];
@@ -22,7 +23,11 @@ Comma<T>: Vec<T> = {
     }
 }
 
-pub Program: ProgramClauses = <(<Clause> ".")*> => ProgramClauses::new(<>);
+pub Program: Program = <(<Item> ".")*> => Program::new(<>);
+
+pub Item: Item = {
+    <Clause> => Item::Clause(<>)
+}
 
 pub Goal: Goal = {
     <Term> => Goal::Term(<>),

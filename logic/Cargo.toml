@@ -5,6 +5,7 @@ authors = ["Andy Yu <andyyu2004@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+engine = { path = "../engine" }
 parse = { path = "../parse" }
 rustyline = "7.1.0"
 clap = "3.0.0-beta.2"

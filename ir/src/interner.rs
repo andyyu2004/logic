@@ -18,8 +18,8 @@ pub trait Interner: Copy + Eq + Ord + Hash + Debug {
     fn intern_clause(&self, clause: Clause<Self>) -> Self::InternedClause;
     fn intern_clauses(
         &self,
-        clause: impl IntoIterator<Item = Clause<Self>>,
-    ) -> Self::InternedClause;
+        clauses: impl IntoIterator<Item = InternedClause<Self>>,
+    ) -> Self::InternedClauses;
     fn intern_term(&self, term: Term<Self>) -> Self::InternedTerm;
     fn intern_terms(
         &self,
