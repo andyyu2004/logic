@@ -40,7 +40,9 @@ pub enum Goal {
     Term(Term),
     And(Box<Goal>, Box<Goal>),
     Or(Box<Goal>, Box<Goal>),
-    // todo exists, impl, forall
+    Implies(Box<Clause>, Box<Goal>),
+    // Quantified(Quantifier, Binders, Goal),,
+    // todo exists, impl, forall, implies
 }
 
 impl Display for Goal {
@@ -49,6 +51,7 @@ impl Display for Goal {
             Goal::Term(term) => write!(f, "{}", term),
             Goal::And(lhs, rhs) => write!(f, "{} & {}", lhs, rhs),
             Goal::Or(lhs, rhs) => write!(f, "{} | {}", lhs, rhs),
+            Goal::Implies(clause, goal) => write!(f, "{} => {}", clause, goal),
         }
     }
 }
@@ -60,12 +63,13 @@ pub enum Clause {
     Horn(Term, Vec<Goal>),
     // <clause>,<clause>
     // And(Box<Clause>, Box<Clause>),
-    // todo forall
+    Forall(Vec<Var>, Box<Clause>),
 }
 
 impl Display for Clause {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
+            Clause::Forall(vars, clause) => write!(f, "∀<{}>.{}", util::join(vars, ","), clause),
             Clause::Horn(term, goals) =>
                 if goals.is_empty() {
                     write!(f, "{}", term)
@@ -82,7 +86,7 @@ pub struct Var(Symbol);
 
 impl Var {
     pub fn new(symbol: Symbol) -> Self {
-        assert!(symbol.as_str().chars().next().unwrap() == '?');
+        assert!(symbol.as_str().chars().next().unwrap().is_ascii_uppercase());
         Self(symbol)
     }
 }
@@ -104,6 +108,7 @@ impl Display for Atom {
 
 impl Atom {
     pub fn new(symbol: Symbol) -> Self {
+        assert!(symbol.as_str().chars().next().unwrap().is_ascii_lowercase());
         Self(symbol)
     }
 }
@@ -121,7 +126,7 @@ impl Display for Term {
         match self {
             Term::Atom(atom) => write!(f, "{}", atom),
             Term::Var(var) => write!(f, "{}", var),
-            Term::Structure(atom, terms) => write!(f, "{}({})", atom, util::join(terms, ",")),
+            Term::Structure(functor, terms) => write!(f, "{}({})", functor, util::join(terms, ",")),
         }
     }
 }

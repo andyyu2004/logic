@@ -47,6 +47,7 @@ fn ir(db: &dyn LoweringDatabase) -> ParseResult<Program<IRInterner>> {
 }
 
 fn env(db: &dyn LoweringDatabase) -> LogicResult<Environment> {
-    let env = Environment::new();
+    let ir = db.ir()?;
+    let env = Environment::new(ir.clauses);
     Ok(env)
 }

@@ -40,9 +40,15 @@ mod tests {
     #[test]
     fn parse_clause_test() {
         let _fact = parser::ClauseParser::new().parse("cool(bob)").unwrap();
-        let _fact = parser::ClauseParser::new().parse("cool(?X)").unwrap();
+        let _fact = parser::ClauseParser::new().parse("cool(X)").unwrap();
         let _clause = parser::ClauseParser::new().parse("cool(bob) :- cool(frank)").unwrap();
         let _clause = parser::ClauseParser::new().parse("cool(bob) :- cool(f), cool(jen)").unwrap();
+    }
+
+    #[test]
+    fn parse_forall_clause_test() {
+        let _clause = parse_clause("forall<X,Y,Z> cool(X)").unwrap();
+        println!("{}", _clause);
     }
 
     #[test]

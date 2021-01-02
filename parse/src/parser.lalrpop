@@ -34,13 +34,13 @@ pub Goal: Goal = {
 }
 
 pub Clause: Clause = {
+    "forall" "<" <vars:Comma1<Var>> ">" <clause:Clause> => Clause::Forall(vars, Box::new(clause)),
     <Term> ":-" <Comma1<Goal>> => Clause::Horn(<>),
     <Term> => Clause::Horn(<>, vec![]),
 }
 
-pub Symbol: Symbol = <s:r"\w+"> => Symbol::intern(s);
-pub Var: Var = <v:r"\?\w*"> => Var::new(Symbol::intern(v));
-pub Atom: Atom = <Symbol> => Atom::new(<>);
+pub Var: Var = <v:r"[A-Z]\w*"> => Var::new(Symbol::intern(v));
+pub Atom: Atom = <atom:r"[a-z]\w*"> => Atom::new(Symbol::intern(atom));
 
 pub Term: Term = {
     <Atom> "(" <Comma1<Term>> ")" => Term::Structure(<>),

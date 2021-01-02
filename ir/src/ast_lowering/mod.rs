@@ -27,6 +27,7 @@ impl<I: Interner> AstLoweringCtx<I> {
             ast::Goal::Term(term) => Goal::Term(self.lower_term(term)),
             ast::Goal::And(lhs, rhs) => Goal::And(self.lower_goal(lhs), self.lower_goal(rhs)),
             ast::Goal::Or(lhs, rhs) => Goal::Or(self.lower_goal(lhs), self.lower_goal(rhs)),
+            ast::Goal::Implies(clause, goal) => todo!(),
         };
         self.interner.intern_goal(lowered_goal)
     }
@@ -43,13 +44,15 @@ impl<I: Interner> AstLoweringCtx<I> {
         let term = match term {
             &ast::Term::Atom(atom) => Term::Atom(atom),
             &ast::Term::Var(var) => Term::Var(var),
-            ast::Term::Structure(atom, terms) => Term::Structure(*atom, self.lower_terms(terms)),
+            ast::Term::Structure(functor, terms) =>
+                Term::Structure(*functor, self.lower_terms(terms)),
         };
         self.interner.intern_term(term)
     }
 
     pub fn lower_clause(&self, clause: &ast::Clause) -> InternedClause<I> {
         let lowered_clause = match clause {
+            ast::Clause::Forall(var, clause) => todo!(),
             ast::Clause::Horn(consequent, goals) =>
                 Clause::Horn(self.lower_term(consequent), self.lower_goals(goals)),
         };

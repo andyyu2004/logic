@@ -19,40 +19,45 @@ impl Interner for IRInterner {
     type InternedClauses = Vec<InternedClause<Self>>;
     type InternedGoal = Rc<Goal<Self>>;
     type InternedGoals = Vec<InternedGoal<Self>>;
+    type InternedSubsts = Vec<InternedTerm<Self>>;
     type InternedTerm = Rc<Term<Self>>;
     type InternedTerms = Vec<InternedTerm<Self>>;
 
-    fn intern_goal(&self, goal: Goal<Self>) -> Self::InternedGoal {
+    fn intern_goal(self, goal: Goal<Self>) -> Self::InternedGoal {
         Rc::new(goal)
     }
 
-    fn intern_clause(&self, clause: Clause<Self>) -> Self::InternedClause {
+    fn intern_clause(self, clause: Clause<Self>) -> Self::InternedClause {
         Rc::new(clause)
     }
 
     fn intern_clauses(
-        &self,
+        self,
         clauses: impl IntoIterator<Item = InternedClause<Self>>,
     ) -> Self::InternedClauses {
         clauses.into_iter().collect()
     }
 
-    fn intern_term(&self, term: Term<Self>) -> Self::InternedTerm {
+    fn intern_term(self, term: Term<Self>) -> Self::InternedTerm {
         Rc::new(term)
     }
 
     fn intern_goals(
-        &self,
+        self,
         goals: impl IntoIterator<Item = InternedGoal<Self>>,
     ) -> Self::InternedGoals {
         goals.into_iter().collect()
     }
 
     fn intern_terms(
-        &self,
+        self,
         terms: impl IntoIterator<Item = InternedTerm<Self>>,
     ) -> Self::InternedTerms {
         terms.into_iter().collect()
+    }
+
+    fn intern_substs(self, substs: impl IntoIterator<Item = InternedTerm<Self>>) -> Substs<Self> {
+        substs.into_iter().collect()
     }
 }
 
@@ -67,6 +72,7 @@ impl<T> Interned<T> {
     }
 }
 
+pub type Substs<I> = <I as Interner>::InternedSubsts;
 pub type InternedClause<I> = <I as Interner>::InternedClause;
 pub type InternedClauses<I> = <I as Interner>::InternedClauses;
 pub type InternedGoal<I> = <I as Interner>::InternedGoal;
@@ -77,7 +83,7 @@ pub type InternedTerms<I> = <I as Interner>::InternedTerms;
 /// top level program
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Program<I: Interner> {
-    clauses: InternedClauses<I>,
+    pub clauses: InternedClauses<I>,
 }
 
 impl<I: Interner> Program<I> {
