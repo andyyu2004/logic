@@ -11,11 +11,11 @@ pub trait Interner: Copy + Eq + Ord + Hash + Debug {
     type InternedTerms: Clone + Eq + Hash + Debug;
     type InternedSubsts: Clone + Eq + Hash + Debug;
 
-    fn clause<'a>(&self, clause: &'a Self::InternedClause) -> &'a ClauseData<Self>;
+    fn clause_data<'a>(&self, clause: &'a Self::InternedClause) -> &'a ClauseData<Self>;
     fn clauses<'a>(&self, clauses: &'a Self::InternedClauses) -> &'a [Clause<Self>];
-    fn goal<'a>(&self, goal: &'a Self::InternedGoal) -> &'a GoalData<Self>;
+    fn goal_data<'a>(&self, goal: &'a Self::InternedGoal) -> &'a GoalData<Self>;
     fn goals<'a>(&self, goals: &'a Self::InternedGoals) -> &'a [Goal<Self>];
-    fn term<'a>(&self, term: &'a Self::InternedTerm) -> &'a TermData<Self>;
+    fn term_data<'a>(&self, term: &'a Self::InternedTerm) -> &'a TermData<Self>;
     fn terms<'a>(&self, terms: &'a Self::InternedTerms) -> &'a [Term<Self>];
 
     fn intern_goal(self, goal: GoalData<Self>) -> Self::InternedGoal;

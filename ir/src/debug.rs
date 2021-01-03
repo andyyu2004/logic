@@ -3,15 +3,41 @@ use std::fmt::{self, Formatter};
 
 pub trait DebugCtxt<I: Interner> {
     fn dbg_term(&self, term: &Term<I>, fmt: &mut Formatter<'_>) -> fmt::Result;
+    fn dbg_terms(&self, terms: &Terms<I>, fmt: &mut Formatter<'_>) -> fmt::Result;
+    fn dbg_goal(&self, goal: &Goal<I>, fmt: &mut Formatter<'_>) -> fmt::Result;
+    fn dbg_goals(&self, goals: &Goals<I>, fmt: &mut Formatter<'_>) -> fmt::Result;
+    fn dbg_clause(&self, clause: &Clause<I>, fmt: &mut Formatter<'_>) -> fmt::Result;
+    fn dbg_clauses(&self, clauses: &Clauses<I>, fmt: &mut Formatter<'_>) -> fmt::Result;
+    fn dbg_substs(&self, substs: &Substs<I>, fmt: &mut Formatter<'_>) -> fmt::Result;
 }
 
-impl DebugCtxt<IRInterner> for IRInterner {
-    fn dbg_term(&self, term: &Term<Self>, f: &mut Formatter<'_>) -> fmt::Result {
-        match self.term(term) {
-            TermData::Atom(atom) => write!(f, "{}", atom),
-            TermData::Var(var) => write!(f, "{}", var),
-            TermData::Structure(functor, terms) =>
-                write!(f, "{} {:?}", functor, util::join_dbg(self.terms(terms), ",")),
-        }
+impl<I: Interner> DebugCtxt<I> for I {
+    fn dbg_term(&self, term: &Term<Self>, fmt: &mut Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{:?}", self.term_data(term))
+    }
+
+    fn dbg_terms(&self, terms: &Terms<Self>, fmt: &mut Formatter<'_>) -> fmt::Result {
+        todo!()
+        // write!(fmt, "{}", util::join_dbg(&terms.0, ","))
+    }
+
+    fn dbg_goal(&self, goal: &Goal<Self>, fmt: &mut Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{:?}", self.goal_data(goal))
+    }
+
+    fn dbg_goals(&self, goals: &Goals<Self>, fmt: &mut Formatter<'_>) -> fmt::Result {
+        todo!()
+    }
+
+    fn dbg_clause(&self, clause: &Clause<Self>, fmt: &mut Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{:?}", self.clause_data(clause))
+    }
+
+    fn dbg_clauses(&self, clauses: &Clauses<Self>, fmt: &mut Formatter<'_>) -> fmt::Result {
+        todo!()
+    }
+
+    fn dbg_substs(&self, substs: &Substs<Self>, fmt: &mut Formatter<'_>) -> fmt::Result {
+        todo!()
     }
 }

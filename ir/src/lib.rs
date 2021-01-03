@@ -15,6 +15,7 @@ use std::fmt::{self, Debug, Formatter};
 use std::rc::Rc;
 
 /// an interner that doesn't really intern anything
+// the default "interner" for internal use
 #[derive(Debug, Clone, Eq, PartialEq, Ord, Hash, PartialOrd, Copy)]
 pub struct IRInterner;
 
@@ -27,7 +28,7 @@ impl Interner for IRInterner {
     type InternedTerm = Rc<TermData<Self>>;
     type InternedTerms = Vec<Term<Self>>;
 
-    fn clause<'a>(&self, clause: &'a Self::InternedClause) -> &'a ClauseData<Self> {
+    fn clause_data<'a>(&self, clause: &'a Self::InternedClause) -> &'a ClauseData<Self> {
         clause
     }
 
@@ -35,7 +36,7 @@ impl Interner for IRInterner {
         clauses.as_slice()
     }
 
-    fn goal<'a>(&self, goal: &'a Self::InternedGoal) -> &'a GoalData<Self> {
+    fn goal_data<'a>(&self, goal: &'a Self::InternedGoal) -> &'a GoalData<Self> {
         goal
     }
 
@@ -43,7 +44,7 @@ impl Interner for IRInterner {
         goals.as_slice()
     }
 
-    fn term<'a>(&self, term: &'a Self::InternedTerm) -> &'a TermData<Self> {
+    fn term_data<'a>(&self, term: &'a Self::InternedTerm) -> &'a TermData<Self> {
         term
     }
 
@@ -84,33 +85,129 @@ impl Interner for IRInterner {
 }
 
 macro_rules! interned {
-    ($ty:ident, $interned:ident) => {
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-        pub struct $ty<I: Interner>(I::$interned);
+    ($data:ident => $intern:ident => $ty:ident, $interned:ident, $dbg_method:ident) => {
+        #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+        pub struct $ty<I: Interner> {
+            interner: I,
+            interned: I::$interned,
+        }
 
-        impl<I: Interner> Deref for $ty<I> {
-            type Target = I::$interned;
+        impl<I: Interner> $ty<I> {
+            pub fn new(interner: I, interned: I::$interned) -> Self {
+                Self { interner, interned }
+            }
 
-            fn deref(&self) -> &Self::Target {
-                &self.0
+            pub fn intern(interner: I, data: $data<I>) -> Self {
+                Self { interner, interned: interner.$intern(data) }
             }
         }
 
-        impl<I: Interner> DerefMut for $ty<I> {
+        impl<I: Interner> std::ops::Deref for $ty<I> {
+            type Target = I::$interned;
+
+            fn deref(&self) -> &Self::Target {
+                &self.interned
+            }
+        }
+
+        impl<I: Interner> std::ops::DerefMut for $ty<I> {
             fn deref_mut(&mut self) -> &mut Self::Target {
-                &mut self.0
+                &mut self.interned
+            }
+        }
+
+        impl<I: Interner> Debug for $ty<I> {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                self.interner.$dbg_method(self, f)
             }
         }
     };
 }
 
-interned!(Goal, InternedGoal);
-interned!(Goals, InternedGoals);
-interned!(Clause, InternedClause);
-interned!(Clauses, InternedClauses);
-interned!(Term, InternedTerm);
-interned!(Terms, InternedTerms);
-interned!(Substs, InternedTerms);
+macro_rules! interned_slice {
+    ($seq:ident, $data:ident => $elem:ty, $intern:ident => $interned:ident, $dbg_method:ident) => {
+        /// List of interned elements.
+        #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+        pub struct $seq<I: Interner> {
+            interner: I,
+            interned: I::$interned,
+        }
+
+        impl<I: Interner> $seq<I> {
+            pub fn new(interner: I, iter: impl IntoIterator<Item = $elem>) -> Self {
+                Self { interner, interned: interner.$intern(iter) }
+            }
+
+            pub fn interned(&self) -> &I::$interned {
+                &self.interned
+            }
+
+            pub fn as_slice(&self, interner: &I) -> &[$elem] {
+                Interner::$data(interner, &self.interned)
+            }
+
+            pub fn at(&self, interner: &I, index: usize) -> &$elem {
+                &self.as_slice(interner)[index]
+            }
+
+            pub fn is_empty(&self, interner: &I) -> bool {
+                self.as_slice(interner).is_empty()
+            }
+
+            pub fn iter(&self, interner: &I) -> std::slice::Iter<'_, $elem> {
+                self.as_slice(interner).iter()
+            }
+
+            pub fn len(&self, interner: &I) -> usize {
+                self.as_slice(interner).len()
+            }
+        }
+
+        impl<I: Interner> std::ops::Deref for $seq<I> {
+            type Target = I::$interned;
+
+            fn deref(&self) -> &Self::Target {
+                &self.interned
+            }
+        }
+
+        impl<I: Interner> std::ops::DerefMut for $seq<I> {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.interned
+            }
+        }
+
+        impl<I: Interner> std::fmt::Debug for $seq<I> {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                todo!()
+            }
+        }
+    };
+}
+
+interned!(GoalData => intern_goal => Goal, InternedGoal, dbg_goal);
+interned!(ClauseData => intern_clause => Clause, InternedClause, dbg_clause);
+interned!(TermData => intern_term => Term, InternedTerm, dbg_term);
+
+interned_slice!(
+    Clauses, 
+    clauses => Clause<I>, 
+    intern_clauses => InternedClauses, 
+    dbg_clauses);
+
+interned_slice!(
+    Goals, 
+    goals => Goal<I>, 
+    intern_goals => InternedGoals, 
+    dbg_goals);
+
+interned_slice!(
+    Terms, 
+    terms => Term<I>, 
+    intern_terms => InternedTerms, 
+    dbg_terms);
+
+pub type Substs<I> = Terms<I>;
 
 /// top level program
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]

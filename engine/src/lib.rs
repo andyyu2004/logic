@@ -19,13 +19,13 @@ impl<I: Interner> RecursiveSolver<I> {
         match goal {
             GoalData::Term(term) => {
                 for clause in self.interner.clauses(&self.env.clauses) {
-                    let clause = self.interner.clause(clause);
+                    let clause = self.interner.clause_data(clause);
                     match clause {
                         ClauseData::Horn(consequent, conditions) =>
                             if consequent == term {
                                 let conditions = self.interner.goals(conditions);
                                 for condition in conditions {
-                                    if self.solve(self.interner.goal(condition)).is_none() {
+                                    if self.solve(self.interner.goal_data(condition)).is_none() {
                                         continue;
                                     }
                                 }
