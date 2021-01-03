@@ -222,6 +222,7 @@ name = "engine"
 version = "0.1.0"
 dependencies = [
  "ena",
+ "error",
  "ir",
  "parse",
  "salsa",
@@ -389,6 +390,8 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "engine",
+ "error",
+ "ir",
  "parse",
  "rustyline",
 ]

@@ -19,43 +19,43 @@ impl<I: Interner> AstLoweringCtx<I> {
             }
         }
 
-        Program { clauses: self.interner.intern_clauses(clauses) }
+        Program { clauses: Clauses(self.interner.intern_clauses(clauses)), interner: self.interner }
     }
 
-    pub fn lower_goal(&self, goal: &ast::Goal) -> InternedGoal<I> {
+    pub fn lower_goal(&self, goal: &ast::Goal) -> Goal<I> {
         let lowered_goal = match goal {
-            ast::Goal::Term(term) => Goal::Term(self.lower_term(term)),
-            ast::Goal::And(lhs, rhs) => Goal::And(self.lower_goal(lhs), self.lower_goal(rhs)),
-            ast::Goal::Or(lhs, rhs) => Goal::Or(self.lower_goal(lhs), self.lower_goal(rhs)),
+            ast::Goal::Term(term) => GoalData::Term(self.lower_term(term)),
             ast::Goal::Implies(clause, goal) => todo!(),
+            ast::Goal::And(lhs, rhs) => GoalData::And(self.lower_goal(lhs), self.lower_goal(rhs)),
+            ast::Goal::Or(lhs, rhs) => GoalData::Or(self.lower_goal(lhs), self.lower_goal(rhs)),
         };
-        self.interner.intern_goal(lowered_goal)
+        Goal(self.interner.intern_goal(lowered_goal))
     }
 
-    pub fn lower_terms<'a>(&self, terms: &[ast::Term]) -> InternedTerms<I> {
-        self.interner.intern_terms(terms.into_iter().map(|term| self.lower_term(term)))
+    pub fn lower_terms<'a>(&self, terms: &[ast::Term]) -> Terms<I> {
+        Terms(self.interner.intern_terms(terms.into_iter().map(|term| self.lower_term(term))))
     }
 
-    pub fn lower_goals(&self, goals: &[ast::Goal]) -> InternedGoals<I> {
-        self.interner.intern_goals(goals.into_iter().map(|goal| self.lower_goal(goal)))
+    pub fn lower_goals(&self, goals: &[ast::Goal]) -> Goals<I> {
+        Goals(self.interner.intern_goals(goals.into_iter().map(|goal| self.lower_goal(goal))))
     }
 
-    pub fn lower_term(&self, term: &ast::Term) -> InternedTerm<I> {
+    pub fn lower_term(&self, term: &ast::Term) -> Term<I> {
         let term = match term {
-            &ast::Term::Atom(atom) => Term::Atom(atom),
-            &ast::Term::Var(var) => Term::Var(var),
+            &ast::Term::Atom(atom) => TermData::Atom(atom),
+            &ast::Term::Var(var) => TermData::Var(var),
             ast::Term::Structure(functor, terms) =>
-                Term::Structure(*functor, self.lower_terms(terms)),
+                TermData::Structure(*functor, self.lower_terms(terms)),
         };
-        self.interner.intern_term(term)
+        Term(self.interner.intern_term(term))
     }
 
-    pub fn lower_clause(&self, clause: &ast::Clause) -> InternedClause<I> {
+    pub fn lower_clause(&self, clause: &ast::Clause) -> Clause<I> {
         let lowered_clause = match clause {
             ast::Clause::Forall(var, clause) => todo!(),
             ast::Clause::Horn(consequent, goals) =>
-                Clause::Horn(self.lower_term(consequent), self.lower_goals(goals)),
+                ClauseData::Horn(self.lower_term(consequent), self.lower_goals(goals)),
         };
-        self.interner.intern_clause(lowered_clause)
+        Clause(self.interner.intern_clause(lowered_clause))
     }
 }

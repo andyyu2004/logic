@@ -11,27 +11,25 @@ pub trait Interner: Copy + Eq + Ord + Hash + Debug {
     type InternedTerms: Clone + Eq + Hash + Debug;
     type InternedSubsts: Clone + Eq + Hash + Debug;
 
-    fn intern_goal(self, goal: Goal<Self>) -> Self::InternedGoal;
-    fn intern_clause(self, clause: Clause<Self>) -> Self::InternedClause;
-    fn intern_term(self, term: Term<Self>) -> Self::InternedTerm;
+    fn clause<'a>(&self, clause: &'a Self::InternedClause) -> &'a ClauseData<Self>;
+    fn clauses<'a>(&self, clauses: &'a Self::InternedClauses) -> &'a [Clause<Self>];
+    fn goal<'a>(&self, goal: &'a Self::InternedGoal) -> &'a GoalData<Self>;
+    fn goals<'a>(&self, goals: &'a Self::InternedGoals) -> &'a [Goal<Self>];
+    fn term<'a>(&self, term: &'a Self::InternedTerm) -> &'a TermData<Self>;
+    fn terms<'a>(&self, terms: &'a Self::InternedTerms) -> &'a [Term<Self>];
 
-    fn intern_substs(
-        self,
-        subst: impl IntoIterator<Item = InternedTerm<Self>>,
-    ) -> Self::InternedSubsts;
+    fn intern_goal(self, goal: GoalData<Self>) -> Self::InternedGoal;
+    fn intern_clause(self, clause: ClauseData<Self>) -> Self::InternedClause;
+    fn intern_term(self, term: TermData<Self>) -> Self::InternedTerm;
 
-    fn intern_goals(
-        self,
-        goals: impl IntoIterator<Item = InternedGoal<Self>>,
-    ) -> Self::InternedGoals;
+    fn intern_substs(self, subst: impl IntoIterator<Item = Term<Self>>) -> Self::InternedSubsts;
+
+    fn intern_goals(self, goals: impl IntoIterator<Item = Goal<Self>>) -> Self::InternedGoals;
 
     fn intern_clauses(
         self,
-        clauses: impl IntoIterator<Item = InternedClause<Self>>,
+        clauses: impl IntoIterator<Item = Clause<Self>>,
     ) -> Self::InternedClauses;
 
-    fn intern_terms(
-        self,
-        terms: impl IntoIterator<Item = InternedTerm<Self>>,
-    ) -> Self::InternedTerms;
+    fn intern_terms(self, terms: impl IntoIterator<Item = Term<Self>>) -> Self::InternedTerms;
 }

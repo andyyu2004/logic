@@ -15,7 +15,7 @@ impl<I: Interner> InferenceVar<I> {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InferenceValue<I: Interner> {
-    Term(InternedTerm<I>),
+    Term(Term<I>),
 }
 
 impl<I: Interner> ena::unify::UnifyKey for InferenceVar<I> {
@@ -44,12 +44,12 @@ pub struct InferCtxt<I: Interner> {
 }
 
 impl<I: Interner> InferCtxt<I> {
-    pub fn unify(&self, t: &Term<I>, u: &Term<I>) -> Substs<I> {
+    pub fn unify(&self, t: &TermData<I>, u: &TermData<I>) -> Substs<I> {
         debug_assert_ne!(t, u);
         match (t, u) {
-            (Term::Var(x), _) => todo!(),
-            (_, Term::Var(y)) => todo!(),
-            (Term::Structure(f, xs), Term::Structure(g, ys)) if f == g => todo!(),
+            (TermData::Var(x), _) => todo!(),
+            (_, TermData::Var(y)) => todo!(),
+            (TermData::Structure(f, xs), TermData::Structure(g, ys)) if f == g => todo!(),
             _ => panic!("failure"),
         }
     }

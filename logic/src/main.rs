@@ -1,4 +1,7 @@
 use clap::Clap;
+use engine::db::{Database, LogicDatabase, LoweringDatabase};
+use error::LogicResult;
+use parse::ast;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
@@ -10,18 +13,14 @@ struct Opts {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let opts = Opts::parse();
 
-    let db = if let Some(path) = &opts.path {
-        let src = std::fs::read_to_string(path)?;
-        engine::Database::new(src)
-    } else {
-        engine::Database::default()
-    };
-
+    let src =
+        if let Some(path) = &opts.path { std::fs::read_to_string(path)? } else { String::new() };
+    let db = Database::new(src);
     repl(db)?;
     Ok(())
 }
 
-fn repl(db: engine::Database) -> Result<(), Box<dyn std::error::Error>> {
+fn repl(db: Database) -> Result<(), Box<dyn std::error::Error>> {
     let mut rl = Editor::<()>::new();
     let _ = rl.load_history("history.txt");
 
@@ -40,7 +39,7 @@ fn repl(db: engine::Database) -> Result<(), Box<dyn std::error::Error>> {
                         continue;
                     }
                 };
-                // db.solve(&goal)?;
+                solve(&db, goal)?;
             }
             Err(ReadlineError::Interrupted) => {
                 break;
@@ -58,10 +57,10 @@ fn repl(db: engine::Database) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-pub type LogicResult<T> = Result<T, String>;
-
-fn solve(src: &str) -> LogicResult<()> {
-    let goal = parse::parse_goal(&src)?;
-    println!("{}", goal);
+fn solve(db: &Database, goal: ast::Goal) -> LogicResult<()> {
+    ir::tls::set_debug_ctxt(Box::new(ir::IRInterner));
+    let env = db.env()?;
+    dbg!(&env);
+    engine::RecursiveSolver { env, interner: ir::IRInterner };
     Ok(())
 }

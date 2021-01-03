@@ -1,4 +1,5 @@
 use crate::*;
+use error::LogicResult;
 use ir::{IRInterner, Program};
 use parse::{ast, ParseResult};
 use std::sync::Arc;
@@ -8,15 +9,16 @@ trait IRDatabase<I> {
 }
 
 #[salsa::query_group(Logic)]
-trait LogicDatabase: salsa::Database {}
+pub trait LogicDatabase: salsa::Database {}
 
 #[salsa::query_group(Lowering)]
-trait LoweringDatabase: salsa::Database {
+pub trait LoweringDatabase: salsa::Database {
     #[salsa::input]
     fn src(&self) -> Arc<String>;
+    fn interner(&self) -> IRInterner;
     fn ast(&self) -> ParseResult<ast::Program>;
     fn ir(&self) -> ParseResult<Program<IRInterner>>;
-    fn env(&self) -> LogicResult<Environment>;
+    fn env(&self) -> LogicResult<Environment<IRInterner>>;
 }
 
 #[salsa::database(Lowering, Logic)]
@@ -46,7 +48,11 @@ fn ir(db: &dyn LoweringDatabase) -> ParseResult<Program<IRInterner>> {
     Ok(ir::lower_ast(IRInterner, &ast))
 }
 
-fn env(db: &dyn LoweringDatabase) -> LogicResult<Environment> {
+fn interner(db: &dyn LoweringDatabase) -> IRInterner {
+    IRInterner
+}
+
+fn env(db: &dyn LoweringDatabase) -> LogicResult<Environment<IRInterner>> {
     let ir = db.ir()?;
     let env = Environment::new(ir.clauses);
     Ok(env)

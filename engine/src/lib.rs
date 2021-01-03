@@ -1,48 +1,57 @@
-mod db;
+pub mod db;
 mod unify;
-
-pub use db::Database;
 
 use ir::*;
 
-pub type LogicResult<T> = Result<T, LogicError>;
-
-impl From<String> for LogicError {
-    fn from(s: String) -> Self {
-        LogicError(s)
-    }
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub struct LogicError(String);
-
 pub trait Solver<I: Interner> {
-    fn solve(&mut self, db: &Database, env: Environment, goal: &Goal<I>) -> Solution<I> {
+    fn solve(&mut self, db: &db::Database, env: Environment<I>, goal: &GoalData<I>) -> Solution<I> {
         todo!()
     }
 }
 
 pub struct RecursiveSolver<I: Interner> {
-    interner: I,
+    pub interner: I,
+    pub env: Environment<I>,
 }
 
-impl<I: Interner> Solver<I> for RecursiveSolver<I> {
-    fn solve(&mut self, db: &Database, env: Environment, goal: &Goal<I>) -> Solution<I> {
-        todo!()
+impl<I: Interner> RecursiveSolver<I> {
+    fn solve(&self, goal: &GoalData<I>) -> Option<Solution<I>> {
+        match goal {
+            GoalData::Term(term) => {
+                for clause in self.interner.clauses(&self.env.clauses) {
+                    let clause = self.interner.clause(clause);
+                    match clause {
+                        ClauseData::Horn(consequent, conditions) =>
+                            if consequent == term {
+                                let conditions = self.interner.goals(conditions);
+                                for condition in conditions {
+                                    if self.solve(self.interner.goal(condition)).is_none() {
+                                        continue;
+                                    }
+                                }
+                                return Some(Solution::Todo);
+                            },
+                    };
+                }
+                return None;
+            }
+            GoalData::And(..) | GoalData::Or(..) => todo!(),
+        }
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Environment {
-    clauses: InternedClauses<IRInterner>,
+pub struct Environment<I: Interner> {
+    clauses: Clauses<I>,
 }
 
-impl Environment {
-    pub fn new(clauses: <IRInterner as Interner>::InternedClauses) -> Self {
+impl<I: Interner> Environment<I> {
+    pub fn new(clauses: Clauses<I>) -> Self {
         Self { clauses }
     }
 }
 
 pub enum Solution<I: Interner> {
     Unique(Substs<I>),
+    Todo,
 }

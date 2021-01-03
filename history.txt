@@ -12,3 +12,11 @@ cool(jen)
 cool(jen) :- cool(jen)
 cool(X)
 c
+\\
+cool(jen).
+cool(jen)
+cool
+cool(bob)
+cool
+cool(jen)
+c

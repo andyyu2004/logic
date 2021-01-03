@@ -6,6 +6,8 @@ edition = "2018"
 
 [dependencies]
 engine = { path = "../engine" }
+error = { path = "../error" }
 parse = { path = "../parse" }
+ir = { path = "../ir" }
 rustyline = "7.1.0"
 clap = "3.0.0-beta.2"

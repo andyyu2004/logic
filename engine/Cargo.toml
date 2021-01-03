@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 ir = { path = "../ir" }
+error = { path = "../error" }
 parse = { path = "../parse" }
 salsa = "0.16.0"
 ena = "0.14"
