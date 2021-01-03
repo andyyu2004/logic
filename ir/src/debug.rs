@@ -8,7 +8,6 @@ pub trait DebugCtxt<I: Interner> {
     fn dbg_goals(&self, goals: &Goals<I>, fmt: &mut Formatter<'_>) -> fmt::Result;
     fn dbg_clause(&self, clause: &Clause<I>, fmt: &mut Formatter<'_>) -> fmt::Result;
     fn dbg_clauses(&self, clauses: &Clauses<I>, fmt: &mut Formatter<'_>) -> fmt::Result;
-    fn dbg_substs(&self, substs: &Substs<I>, fmt: &mut Formatter<'_>) -> fmt::Result;
 }
 
 impl<I: Interner> DebugCtxt<I> for I {
@@ -17,8 +16,7 @@ impl<I: Interner> DebugCtxt<I> for I {
     }
 
     fn dbg_terms(&self, terms: &Terms<Self>, fmt: &mut Formatter<'_>) -> fmt::Result {
-        todo!()
-        // write!(fmt, "{}", util::join_dbg(&terms.0, ","))
+        write!(fmt, "{}", util::join_dbg(terms.as_slice(), ","))
     }
 
     fn dbg_goal(&self, goal: &Goal<Self>, fmt: &mut Formatter<'_>) -> fmt::Result {
@@ -26,7 +24,7 @@ impl<I: Interner> DebugCtxt<I> for I {
     }
 
     fn dbg_goals(&self, goals: &Goals<Self>, fmt: &mut Formatter<'_>) -> fmt::Result {
-        todo!()
+        write!(fmt, "{:?}", self.goals(goals))
     }
 
     fn dbg_clause(&self, clause: &Clause<Self>, fmt: &mut Formatter<'_>) -> fmt::Result {
@@ -34,10 +32,10 @@ impl<I: Interner> DebugCtxt<I> for I {
     }
 
     fn dbg_clauses(&self, clauses: &Clauses<Self>, fmt: &mut Formatter<'_>) -> fmt::Result {
-        todo!()
-    }
-
-    fn dbg_substs(&self, substs: &Substs<Self>, fmt: &mut Formatter<'_>) -> fmt::Result {
-        todo!()
+        for clause in clauses.as_slice() {
+            self.dbg_clause(clause, fmt)?;
+            writeln!(fmt)?;
+        }
+        Ok(())
     }
 }

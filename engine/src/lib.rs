@@ -15,8 +15,8 @@ pub struct RecursiveSolver<I: Interner> {
 }
 
 impl<I: Interner> RecursiveSolver<I> {
-    fn solve(&self, goal: &GoalData<I>) -> Option<Solution<I>> {
-        match goal {
+    pub fn solve(&self, goal: &Goal<I>) -> Option<Solution<I>> {
+        match self.interner.goal_data(goal) {
             GoalData::Term(term) => {
                 for clause in self.interner.clauses(&self.env.clauses) {
                     let clause = self.interner.clause_data(clause);
@@ -25,7 +25,7 @@ impl<I: Interner> RecursiveSolver<I> {
                             if consequent == term {
                                 let conditions = self.interner.goals(conditions);
                                 for condition in conditions {
-                                    if self.solve(self.interner.goal_data(condition)).is_none() {
+                                    if self.solve(condition).is_none() {
                                         continue;
                                     }
                                 }

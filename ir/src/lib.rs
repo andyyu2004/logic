@@ -5,7 +5,7 @@ mod debug;
 mod interner;
 pub mod tls;
 
-pub use ast_lowering::lower_ast;
+pub use ast_lowering::{lower_ast, lower_goal};
 pub use debug::DebugCtxt;
 pub use interner::Interner;
 pub use std::ops::{Deref, DerefMut};
@@ -142,24 +142,24 @@ macro_rules! interned_slice {
                 &self.interned
             }
 
-            pub fn as_slice(&self, interner: &I) -> &[$elem] {
-                Interner::$data(interner, &self.interned)
+            pub fn as_slice(&self) -> &[$elem] {
+                self.interner.$data(&self.interned)
             }
 
-            pub fn at(&self, interner: &I, index: usize) -> &$elem {
-                &self.as_slice(interner)[index]
+            pub fn at(&self, index: usize) -> &$elem {
+                &self.as_slice()[index]
             }
 
-            pub fn is_empty(&self, interner: &I) -> bool {
-                self.as_slice(interner).is_empty()
+            pub fn is_empty(&self) -> bool {
+                self.as_slice().is_empty()
             }
 
-            pub fn iter(&self, interner: &I) -> std::slice::Iter<'_, $elem> {
-                self.as_slice(interner).iter()
+            pub fn iter(&self) -> std::slice::Iter<'_, $elem> {
+                self.as_slice().iter()
             }
 
-            pub fn len(&self, interner: &I) -> usize {
-                self.as_slice(interner).len()
+            pub fn len(&self) -> usize {
+                self.as_slice().len()
             }
         }
 
@@ -179,7 +179,7 @@ macro_rules! interned_slice {
 
         impl<I: Interner> std::fmt::Debug for $seq<I> {
             fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                todo!()
+                self.interner.$dbg_method(self, f)
             }
         }
     };
@@ -190,22 +190,25 @@ interned!(ClauseData => intern_clause => Clause, InternedClause, dbg_clause);
 interned!(TermData => intern_term => Term, InternedTerm, dbg_term);
 
 interned_slice!(
-    Clauses, 
-    clauses => Clause<I>, 
-    intern_clauses => InternedClauses, 
-    dbg_clauses);
+    Clauses,
+    clauses => Clause<I>,
+    intern_clauses => InternedClauses,
+    dbg_clauses
+);
 
 interned_slice!(
-    Goals, 
-    goals => Goal<I>, 
-    intern_goals => InternedGoals, 
-    dbg_goals);
+    Goals,
+    goals => Goal<I>,
+    intern_goals => InternedGoals,
+    dbg_goals
+);
 
 interned_slice!(
-    Terms, 
-    terms => Term<I>, 
-    intern_terms => InternedTerms, 
-    dbg_terms);
+    Terms,
+    terms => Term<I>,
+    intern_terms => InternedTerms,
+    dbg_terms
+);
 
 pub type Substs<I> = Terms<I>;
 
@@ -253,7 +256,11 @@ impl<I: Interner> Debug for ClauseData<I> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             ClauseData::Horn(consequent, conditions) =>
-                write!(f, "{:?} :- {:?}", consequent, conditions),
+                if conditions.is_empty() {
+                    write!(f, "{:?}", consequent)
+                } else {
+                    write!(f, "{:?} :- {:?}", consequent, conditions)
+                },
         }
     }
 }
@@ -269,9 +276,9 @@ pub enum TermData<I: Interner> {
 impl<I: Interner> Debug for TermData<I> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            TermData::Atom(atom) => writeln!(f, "{}", atom),
-            TermData::Var(var) => writeln!(f, "{}", var),
-            TermData::Structure(atom, terms) => writeln!(f, "{}({:?})", atom, terms),
+            TermData::Atom(atom) => write!(f, "{}", atom),
+            TermData::Var(var) => write!(f, "{}", var),
+            TermData::Structure(atom, terms) => write!(f, "{}({:?})", atom, terms),
         }
     }
 }

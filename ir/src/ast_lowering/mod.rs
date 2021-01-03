@@ -5,6 +5,10 @@ pub fn lower_ast<I: Interner>(interner: I, ast: &ast::Program) -> Program<I> {
     AstLoweringCtx { interner }.lower_program(ast)
 }
 
+pub fn lower_goal<I: Interner>(interner: I, goal: &ast::Goal) -> Goal<I> {
+    AstLoweringCtx { interner }.lower_goal(goal)
+}
+
 /// lowers ast into ir form, not to be confused with trait lowering
 struct AstLoweringCtx<I: Interner> {
     interner: I,

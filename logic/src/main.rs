@@ -59,8 +59,10 @@ fn repl(db: Database) -> Result<(), Box<dyn std::error::Error>> {
 
 fn solve(db: &Database, goal: ast::Goal) -> LogicResult<()> {
     ir::tls::set_debug_ctxt(Box::new(ir::IRInterner));
+    let goal = ir::lower_goal(ir::IRInterner, &goal);
     let env = db.env()?;
     dbg!(&env);
-    engine::RecursiveSolver { env, interner: ir::IRInterner };
+    dbg!(&goal);
+    let solver = engine::RecursiveSolver { env, interner: ir::IRInterner };
     Ok(())
 }
