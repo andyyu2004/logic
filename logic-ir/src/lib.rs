@@ -10,7 +10,7 @@ pub use debug::DebugCtxt;
 pub use interner::Interner;
 pub use std::ops::{Deref, DerefMut};
 
-use parse::{Atom, Var};
+use logic_parse::{Atom, Var};
 use std::fmt::{self, Debug, Formatter};
 use std::rc::Rc;
 
@@ -88,8 +88,8 @@ macro_rules! interned {
     ($data:ident => $intern:ident => $ty:ident, $interned:ident, $dbg_method:ident) => {
         #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
         pub struct $ty<I: Interner> {
-            interner: I,
-            interned: I::$interned,
+            pub interner: I,
+            pub interned: I::$interned,
         }
 
         impl<I: Interner> $ty<I> {
@@ -129,8 +129,8 @@ macro_rules! interned_slice {
         /// List of interned elements.
         #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
         pub struct $seq<I: Interner> {
-            interner: I,
-            interned: I::$interned,
+            pub interner: I,
+            pub interned: I::$interned,
         }
 
         impl<I: Interner> $seq<I> {

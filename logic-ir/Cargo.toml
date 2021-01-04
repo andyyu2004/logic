@@ -1,8 +1,9 @@
 [package]
-name = "error"
+name = "logic-ir"
 version = "0.1.0"
 authors = ["Andy Yu <andyyu2004@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-thiserror = "1"
+logic-parse = { path = "../logic-parse" }
+util = { path = "../logic-util" }

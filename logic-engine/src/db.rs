@@ -1,7 +1,7 @@
 use crate::*;
-use error::LogicResult;
-use ir::{IRInterner, Program};
-use parse::{ast, ParseResult};
+use logic_error::LogicResult;
+use logic_ir::{IRInterner, Program};
+use logic_parse::{ast, ParseResult};
 use std::sync::Arc;
 
 trait IRDatabase<I> {
@@ -40,12 +40,12 @@ impl Database {
 
 fn ast(db: &dyn LoweringDatabase) -> ParseResult<ast::Program> {
     let src = db.src();
-    parse::parse_program(&src)
+    logic_parse::parse_program(&src)
 }
 
 fn ir(db: &dyn LoweringDatabase) -> ParseResult<Program<IRInterner>> {
     let ast = db.ast()?;
-    Ok(ir::lower_ast(IRInterner, &ast))
+    Ok(logic_ir::lower_ast(IRInterner, &ast))
 }
 
 fn interner(db: &dyn LoweringDatabase) -> IRInterner {

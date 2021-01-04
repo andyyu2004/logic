@@ -1,5 +1,5 @@
 use crate::*;
-use parse::ast;
+use logic_parse::ast;
 
 pub fn lower_ast<I: Interner>(interner: I, ast: &ast::Program) -> Program<I> {
     AstLoweringCtx { interner }.lower_program(ast)

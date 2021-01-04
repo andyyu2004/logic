@@ -1,5 +1,4 @@
-use ena::unify::UnificationTable;
-use ir::*;
+use logic_ir::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct InferenceVar<I: Interner> {
@@ -34,17 +33,29 @@ impl<I: Interner> ena::unify::UnifyKey for InferenceVar<I> {
     }
 }
 
+pub enum UnificationError {}
+
 impl<I: Interner> ena::unify::EqUnifyValue for InferenceValue<I> {
 }
 
 #[derive(Clone)]
 pub struct InferCtxt<I: Interner> {
+    interner: I,
     tables: ena::unify::InPlaceUnificationTable<InferenceVar<I>>,
     vars: Vec<InferenceVar<I>>,
 }
 
 impl<I: Interner> InferCtxt<I> {
-    pub fn unify(&self, t: &TermData<I>, u: &TermData<I>) -> Substs<I> {
+    pub fn new(interner: I) -> Self {
+        Self { interner, tables: Default::default(), vars: Default::default() }
+    }
+
+    pub fn try_unify(&self, t: &Term<I>, u: &Term<I>) -> Option<Term<I>> {
+        self.unify(t, u).ok()
+    }
+
+    pub fn unify(&self, t: &Term<I>, u: &Term<I>) -> Result<Term<I>, UnificationError> {
+        let (t, u) = (self.interner.term_data(t), self.interner.term_data(u));
         debug_assert_ne!(t, u);
         match (t, u) {
             (TermData::Var(x), _) => todo!(),

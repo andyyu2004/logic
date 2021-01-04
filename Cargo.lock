@@ -218,24 +218,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "engine"
-version = "0.1.0"
-dependencies = [
- "ena",
- "error",
- "ir",
- "parse",
- "salsa",
-]
-
-[[package]]
-name = "error"
-version = "0.1.0"
-dependencies = [
- "thiserror",
-]
-
-[[package]]
 name = "fixedbitset"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -303,14 +285,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61124eeebbd69b8190558df225adf7e4caafce0d743919e5d6b19652314ec5ec"
 dependencies = [
  "cfg-if 1.0.0",
-]
-
-[[package]]
-name = "ir"
-version = "0.1.0"
-dependencies = [
- "parse",
- "util",
 ]
 
 [[package]]
@@ -389,11 +363,49 @@ name = "logic"
 version = "0.1.0"
 dependencies = [
  "clap",
- "engine",
- "error",
- "ir",
- "parse",
+ "logic-engine",
+ "logic-error",
+ "logic-ir",
+ "logic-parse",
  "rustyline",
+]
+
+[[package]]
+name = "logic-engine"
+version = "0.1.0"
+dependencies = [
+ "ena",
+ "logic-error",
+ "logic-ir",
+ "logic-parse",
+ "salsa",
+]
+
+[[package]]
+name = "logic-error"
+version = "0.1.0"
+dependencies = [
+ "thiserror",
+]
+
+[[package]]
+name = "logic-ir"
+version = "0.1.0"
+dependencies = [
+ "logic-parse",
+ "util",
+]
+
+[[package]]
+name = "logic-parse"
+version = "0.1.0"
+dependencies = [
+ "lalrpop",
+ "lalrpop-util",
+ "regex",
+ "rustc-hash",
+ "typed-arena",
+ "util",
 ]
 
 [[package]]
@@ -455,18 +467,6 @@ dependencies = [
  "redox_syscall",
  "smallvec",
  "winapi",
-]
-
-[[package]]
-name = "parse"
-version = "0.1.0"
-dependencies = [
- "lalrpop",
- "lalrpop-util",
- "regex",
- "rustc-hash",
- "typed-arena",
- "util",
 ]
 
 [[package]]
