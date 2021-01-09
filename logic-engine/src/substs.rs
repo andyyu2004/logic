@@ -9,6 +9,7 @@ impl<I: Interner> SubstsFolder<I> {
         let data = self.interner.term_data(&term.interned);
         match data {
             TermData::Var(x) => todo!(),
+            TermData::Infer(infer) => todo!(),
             TermData::Atom(x) => term.clone(),
             TermData::Structure(f, terms) => Term::intern(self.interner, todo!()),
         }

@@ -4,7 +4,7 @@ mod symbol;
 
 use ast::*;
 pub use ast::{Atom, Var};
-pub use symbol::Symbol;
+pub use symbol::Sym;
 
 pub type ParseResult<T> = Result<T, String>;
 

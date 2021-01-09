@@ -23,7 +23,7 @@ impl<I: Interner> AstLoweringCtx<I> {
             }
         }
 
-        Program { clauses: Clauses::new(self.interner, clauses), interner: self.interner }
+        Program { clauses: Clauses::intern(self.interner, clauses), interner: self.interner }
     }
 
     pub fn lower_goal(&self, goal: &ast::Goal) -> Goal<I> {
@@ -37,11 +37,11 @@ impl<I: Interner> AstLoweringCtx<I> {
     }
 
     pub fn lower_terms<'a>(&self, terms: &[ast::Term]) -> Terms<I> {
-        Terms::new(self.interner, terms.into_iter().map(|term| self.lower_term(term)))
+        Terms::intern(self.interner, terms.into_iter().map(|term| self.lower_term(term)))
     }
 
     pub fn lower_goals(&self, goals: &[ast::Goal]) -> Goals<I> {
-        Goals::new(self.interner, goals.into_iter().map(|goal| self.lower_goal(goal)))
+        Goals::intern(self.interner, goals.into_iter().map(|goal| self.lower_goal(goal)))
     }
 
     pub fn lower_term(&self, term: &ast::Term) -> Term<I> {

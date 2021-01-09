@@ -1,4 +1,4 @@
-use crate::symbol::Symbol;
+use crate::symbol::Sym;
 use std::fmt::{self, Display, Formatter};
 
 /// top level program
@@ -82,10 +82,10 @@ impl Display for Clause {
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialOrd, Ord, PartialEq, Eq)]
-pub struct Var(Symbol);
+pub struct Var(Sym);
 
 impl Var {
-    pub fn new(symbol: Symbol) -> Self {
+    pub fn new(symbol: Sym) -> Self {
         assert!(symbol.as_str().chars().next().unwrap().is_ascii_uppercase());
         Self(symbol)
     }
@@ -98,7 +98,7 @@ impl Display for Var {
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialOrd, Ord, PartialEq, Eq)]
-pub struct Atom(Symbol);
+pub struct Atom(Sym);
 
 impl Display for Atom {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -107,7 +107,7 @@ impl Display for Atom {
 }
 
 impl Atom {
-    pub fn new(symbol: Symbol) -> Self {
+    pub fn new(symbol: Sym) -> Self {
         assert!(symbol.as_str().chars().next().unwrap().is_ascii_lowercase());
         Self(symbol)
     }

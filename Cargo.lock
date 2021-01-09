@@ -269,6 +269,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "indexed_vec"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd5390d1640d64a30efbbe9cd15cb9f472388b4d5693677c693a7bc9310c0d08"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "indexmap"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -371,10 +380,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "logic-core"
+version = "0.1.0"
+
+[[package]]
 name = "logic-engine"
 version = "0.1.0"
 dependencies = [
  "ena",
+ "indexed_vec",
  "logic-error",
  "logic-ir",
  "logic-parse",
@@ -392,6 +406,8 @@ dependencies = [
 name = "logic-ir"
 version = "0.1.0"
 dependencies = [
+ "ena",
+ "indexed_vec",
  "logic-parse",
  "util",
 ]
@@ -650,6 +666,26 @@ name = "scopeguard"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
+
+[[package]]
+name = "serde"
+version = "1.0.118"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06c64263859d87aa2eb554587e2d23183398d617427327cf2b3d0ed8c69e4800"
+dependencies = [
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.118"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c84d3526699cd55261af4b941e4e725444df67aa4f9e6a3564f18030d12672df"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "siphasher"

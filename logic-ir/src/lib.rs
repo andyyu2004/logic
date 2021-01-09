@@ -8,9 +8,10 @@ pub mod tls;
 pub use ast_lowering::{lower_ast, lower_goal};
 pub use debug::DebugCtxt;
 pub use interner::Interner;
+pub use logic_parse::{Atom, Sym, Var};
 pub use std::ops::{Deref, DerefMut};
 
-use logic_parse::{Atom, Var};
+use indexed_vec::newtype_index;
 use std::fmt::{self, Debug, Formatter};
 use std::rc::Rc;
 
@@ -20,6 +21,8 @@ use std::rc::Rc;
 pub struct IRInterner;
 
 impl Interner for IRInterner {
+    // wrapped in `Rc` to make it cheaply cloneable
+    // a proper interner should probably use copyable references
     type InternedClause = Rc<ClauseData<Self>>;
     type InternedClauses = Vec<Clause<Self>>;
     type InternedGoal = Rc<GoalData<Self>>;
@@ -134,7 +137,7 @@ macro_rules! interned_slice {
         }
 
         impl<I: Interner> $seq<I> {
-            pub fn new(interner: I, iter: impl IntoIterator<Item = $elem>) -> Self {
+            pub fn intern(interner: I, iter: impl IntoIterator<Item = $elem>) -> Self {
                 Self { interner, interned: interner.$intern(iter) }
             }
 
@@ -243,16 +246,18 @@ impl<I: Interner> Debug for GoalData<I> {
     }
 }
 
+pub trait DomainGoal<I> {}
+
 // intuitively "things we know"
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub enum ClauseData<I: Interner> {
+pub enum ClauseData<I: Interner, D: DomainGoal<I>> {
     /// <clause> :- <goals>
     /// empty goal means the implication is a fact
-    Horn(Term<I>, Goals<I>),
+    Horn(D, Goals<I>),
     // todo forall
 }
 
-impl<I: Interner> Debug for ClauseData<I> {
+impl<I: Interner, D: DomainGoal<I>> Debug for ClauseData<I, D> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             ClauseData::Horn(consequent, conditions) =>
@@ -265,12 +270,15 @@ impl<I: Interner> Debug for ClauseData<I> {
     }
 }
 
+newtype_index!(InferenceIdx);
+
 /// a.k.a DomainGoal
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub enum TermData<I: Interner> {
     Atom(Atom),
     Var(Var),
     Structure(Atom, Terms<I>),
+    Infer(InferenceIdx),
 }
 
 impl<I: Interner> Debug for TermData<I> {
@@ -279,6 +287,7 @@ impl<I: Interner> Debug for TermData<I> {
             TermData::Atom(atom) => write!(f, "{}", atom),
             TermData::Var(var) => write!(f, "{}", var),
             TermData::Structure(atom, terms) => write!(f, "{}({:?})", atom, terms),
+            TermData::Infer(infer) => write!(f, "{:?}", infer),
         }
     }
 }
