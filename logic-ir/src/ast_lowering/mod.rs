@@ -38,7 +38,8 @@ impl AstLoweringCtx {
 
     pub fn lower_goal(&self, goal: &ast::Goal) -> Goal<I> {
         let goal_data = match goal {
-            ast::Goal::Term(term) => GoalData::DomainGoal(self.lower_term(term)),
+            // ast::Goal::Term(term) => GoalData::DomainGoal(self.lower_term(term)),
+            ast::Goal::Term(term) => todo!(),
             ast::Goal::Implies(clause, goal) => todo!(),
             ast::Goal::And(lhs, rhs) => GoalData::And(self.lower_goal(lhs), self.lower_goal(rhs)),
             ast::Goal::Or(lhs, rhs) => GoalData::Or(self.lower_goal(lhs), self.lower_goal(rhs)),
@@ -54,22 +55,23 @@ impl AstLoweringCtx {
         Goals::intern(self.interner, goals.into_iter().map(|goal| self.lower_goal(goal)))
     }
 
-    pub fn lower_term(&self, term: &ast::Term) -> impl GenericTerm<I> {
+    pub fn lower_term(&self, term: &ast::Term) -> Term<I> {
         let term = match term {
-            &ast::Term::Atom(atom) => TermData::Atom(atom),
-            &ast::Term::Var(var) => TermData::Var(var),
+            &ast::Term::Atom(atom) => PrologTermData::Atom(atom),
+            &ast::Term::Var(var) => PrologTermData::Var(var),
             ast::Term::Structure(functor, terms) =>
-                TermData::Structure(*functor, self.lower_terms(terms)),
+                PrologTermData::Structure(*functor, self.lower_terms(terms)),
         };
-        GenericTerm::new(self.interner, self.interner.intern_term(term))
+        Term::new(self.interner, self.interner.intern_term(term))
     }
 
     pub fn lower_clause(&self, clause: &ast::Clause) -> Clause<I> {
-        let lowered_clause = match clause {
-            ast::Clause::Forall(var, clause) => todo!(),
-            ast::Clause::Horn(consequent, goals) =>
-                ClauseData::Horn(self.lower_term(consequent), self.lower_goals(goals)),
-        };
-        Clause::new(self.interner, self.interner.intern_clause(lowered_clause))
+        todo!()
+        // let lowered_clause = match clause {
+        // ast::Clause::Forall(var, clause) => todo!(),
+        // ast::Clause::Horn(consequent, goals) =>
+        // ClauseData::Horn(self.lower_term(consequent), self.lower_goals(goals)),
+        // };
+        // Clause::new(self.interner, self.interner.intern_clause(lowered_clause))
     }
 }

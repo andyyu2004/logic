@@ -40,7 +40,8 @@ fn repl(db: Database) -> Result<(), Box<dyn std::error::Error>> {
                         continue;
                     }
                 };
-                solve(&db, goal)?;
+                todo!()
+                // solve(&db, goal)?;
             }
             Err(ReadlineError::Interrupted) => {
                 break;
@@ -58,13 +59,13 @@ fn repl(db: Database) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn solve(db: &Database, goal: ast::Goal) -> LogicResult<()> {
-    tls::set_debug_ctxt(Box::new(IRInterner));
-    let goal = logic_ir::lower_goal(IRInterner, &goal);
-    let env = db.env()?;
-    dbg!(&env);
-    dbg!(&goal);
-    let solver = logic_engine::RecursiveSolver::new(IRInterner, env);
-    dbg!(solver.solve(&goal));
-    Ok(())
-}
+// fn solve(db: &Database, goal: ast::Goal) -> LogicResult<()> {
+// tls::set_debug_ctxt(Box::new(IRInterner));
+// let goal = logic_ir::lower_goal(&goal);
+// let env = db.env()?;
+// dbg!(&env);
+// dbg!(&goal);
+// let solver = logic_engine::RecursiveSolver::new(IRInterner, env);
+// dbg!(solver.solve(&goal));
+// Ok(())
+// }

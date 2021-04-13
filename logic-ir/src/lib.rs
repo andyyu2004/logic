@@ -24,7 +24,9 @@ use std::rc::Rc;
 pub struct IRInterner;
 
 impl Interner for IRInterner {
-    type DomainGoal = SomeDomainGoal<Self, Ty<Self>>;
+    // This and interned term TODO
+    type ConcreteTerm = PrologTermData<Self>;
+    type DomainGoal = SomeDomainGoal<Self, Self::ConcreteTerm>;
     // type DomainGoal = GenericTerm<Self>;
     // wrapped in `Rc` to make it cheaply cloneable
     // a proper interner should probably use copyable references
@@ -32,7 +34,7 @@ impl Interner for IRInterner {
     type InternedClauses = Vec<Clause<Self>>;
     type InternedGoal = Rc<GoalData<Self>>;
     type InternedGoals = Vec<Goal<Self>>;
-    type InternedTerm = Ty<Self>;
+    type InternedTerm = Rc<Self::ConcreteTerm>;
     type InternedTerms = Vec<Term<Self>>;
 
     fn goal_data<'a>(&self, goal: &'a Self::InternedGoal) -> &'a GoalData<Self> {
@@ -70,22 +72,19 @@ impl Interner for IRInterner {
         clauses.into_iter().collect()
     }
 
-    fn term_data<'a, T: GenericTerm<Self>>(&self, term: &'a Self::InternedTerm) -> &'a T {
+    fn term_data<'a>(&self, term: &'a Self::InternedTerm) -> &'a Self::ConcreteTerm {
         todo!()
     }
 
-    fn terms<'a, T: GenericTerm<Self>>(&self, terms: &'a Self::InternedTerms) -> &'a [Term<Self>] {
+    fn terms<'a>(&self, terms: &'a Self::InternedTerms) -> &'a [Term<Self>] {
         todo!()
     }
 
-    fn intern_term(self, term: impl GenericTerm<Self>) -> Self::InternedTerm {
+    fn intern_term(self, term: Self::ConcreteTerm) -> Self::InternedTerm {
         todo!()
     }
 
-    fn intern_terms<T: GenericTerm<Self>>(
-        self,
-        term: impl IntoIterator<Item = T>,
-    ) -> Self::InternedTerms {
+    fn intern_terms(self, term: impl IntoIterator<Item = Term<Self>>) -> Self::InternedTerms {
         todo!()
     }
 }
@@ -165,7 +164,7 @@ pub struct SomeDomainGoal<I: Interner, T: GenericTerm<I>> {
     _marker_t: std::marker::PhantomData<T>,
 }
 
-impl<I: Interner> DomainGoal<I, Ty<I>> for SomeDomainGoal<I, Ty<I>> {
+impl<I: Interner, T: GenericTerm<I>> DomainGoal<I, T> for SomeDomainGoal<I, T> {
 }
 
 newtype_index!(InferenceIdx);
@@ -174,8 +173,12 @@ newtype_index!(InferenceIdx);
 pub enum PrologTermData<I: Interner> {
     Atom(Atom),
     Var(Var),
-    Structure(Atom, PrologTerms<I>),
+    Structure(Atom, Terms<I>),
     Infer(InferenceIdx),
+}
+
+impl<I> GenericTerm<I> for PrologTermData<I> where I: Interner
+{
 }
 
 impl<I: Interner> Debug for PrologTermData<I> {

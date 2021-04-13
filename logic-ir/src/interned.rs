@@ -1,5 +1,6 @@
 //! macros for creating wrappers around the interned associated types
-use crate::{ClauseData, GenericTerm, GoalData, Interner};
+use crate::debug::DebugCtxt;
+use crate::{ClauseData, GenericTerm, GoalData, Interner, PrologTermData};
 use std::fmt::{self, Debug, Formatter};
 
 macro_rules! interned {
@@ -44,7 +45,7 @@ macro_rules! interned {
 
 // slightly more generic where $data is a trait rather than a concrete type
 macro_rules! interned_generic {
-    ($trait:ident => $intern:ident => $ty:ident, $interned:ident, $dbg_method:ident) => {
+    ($assoc:ident => $intern:ident => $ty:ident, $interned:ident, $dbg_method:ident) => {
         #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
         pub struct $ty<I: Interner> {
             pub interner: I,
@@ -56,7 +57,7 @@ macro_rules! interned_generic {
                 Self { interner, interned }
             }
 
-            pub fn intern(interner: I, data: impl $trait<I>) -> Self {
+            pub fn intern(interner: I, data: I::$assoc) -> Self {
                 Self { interner, interned: interner.$intern(data) }
             }
         }
@@ -208,12 +209,15 @@ macro_rules! interned_generic_slice {
 interned!(GoalData => intern_goal => Goal, InternedGoal, dbg_goal);
 interned!(ClauseData => intern_clause => Clause, InternedClause, dbg_clause);
 
-interned_generic!(GenericTerm => intern_term => Term, InternedTerm, dbg_term);
-// interned_generic_slice!(GenericTerm => intern_term => Term, InternedTerm, dbg_term);
+interned_generic!(ConcreteTerm => intern_term => Term, InternedTerm, dbg_term);
 
-pub struct Terms<I: Interner> {
-    slice: I::InternedTerms,
-}
+interned_slice!(
+    Terms,
+    terms => Term<I>,
+    intern_terms => InternedTerms,
+    dbg_terms
+);
+
 interned_slice!(
     Clauses,
     clauses => Clause<I>,
