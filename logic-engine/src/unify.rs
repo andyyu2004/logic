@@ -64,8 +64,8 @@ use std::fmt::{self, Debug, Formatter};
 // }
 
 // pub struct InferCtxt<I: Interner> {
-    // interner: I,
-    // inner: RefCell<InferCtxtInner<I>>,
+// interner: I,
+// inner: RefCell<InferCtxtInner<I>>,
 // }
 
 // pub struct InferCtxtInner<I: Interner> {

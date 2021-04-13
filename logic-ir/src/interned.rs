@@ -1,5 +1,6 @@
 //! macros for creating wrappers around the interned associated types
 use crate::debug::DebugCtxt;
+use crate::unify::{UnificationResult, Unify};
 use crate::{ClauseData, GenericTerm, GoalData, Interner, PrologTermData};
 use std::fmt::{self, Debug, Formatter};
 
@@ -43,7 +44,8 @@ macro_rules! interned {
     };
 }
 
-// slightly more generic where $data is a trait rather than a concrete type
+// slightly more generic where the interned datatype is defined as an associated type
+// rather than being known already
 macro_rules! interned_generic {
     ($assoc:ident => $intern:ident => $ty:ident, $interned:ident, $dbg_method:ident) => {
         #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -145,71 +147,15 @@ macro_rules! interned_slice {
     };
 }
 
-macro_rules! interned_generic_slice {
-    ($seq:ident, $trait:ident => $elem:ty, $intern:ident => $interned:ident, $dbg_method:ident) => {
-        /// List of interned elements.
-        #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-        pub struct $seq<I: Interner> {
-            pub interner: I,
-            pub interned: I::$interned,
-        }
-
-        impl<I: Interner> $seq<I> {
-            pub fn intern<T: $trait<I>>(interner: I, iter: impl IntoIterator<Item = T>) -> Self {
-                Self { interner, interned: interner.$intern(iter) }
-            }
-
-            pub fn interned(&self) -> &I::$interned {
-                &self.interned
-            }
-
-            pub fn as_slice(&self) -> &[$elem] {
-                self.interner.$data(&self.interned)
-            }
-
-            pub fn at(&self, index: usize) -> &$elem {
-                &self.as_slice()[index]
-            }
-
-            pub fn is_empty(&self) -> bool {
-                self.as_slice().is_empty()
-            }
-
-            pub fn iter(&self) -> std::slice::Iter<'_, $elem> {
-                self.as_slice().iter()
-            }
-
-            pub fn len(&self) -> usize {
-                self.as_slice().len()
-            }
-        }
-
-        impl<I: Interner> std::ops::Deref for $seq<I> {
-            type Target = I::$interned;
-
-            fn deref(&self) -> &Self::Target {
-                &self.interned
-            }
-        }
-
-        impl<I: Interner> std::ops::DerefMut for $seq<I> {
-            fn deref_mut(&mut self) -> &mut Self::Target {
-                &mut self.interned
-            }
-        }
-
-        impl<I: Interner> std::fmt::Debug for $seq<I> {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                self.interner.$dbg_method(self, f)
-            }
-        }
-    };
-}
-
 interned!(GoalData => intern_goal => Goal, InternedGoal, dbg_goal);
 interned!(ClauseData => intern_clause => Clause, InternedClause, dbg_clause);
+interned_generic!(Term => intern_term => Term, InternedTerm, dbg_term);
 
-interned_generic!(ConcreteTerm => intern_term => Term, InternedTerm, dbg_term);
+impl<I: Interner> Unify<I> for Term<I> {
+    fn unify(context: &mut I::UnificationContext, a: &Self, b: &Self) -> UnificationResult<()> {
+        Unify::unify(context, a, b)
+    }
+}
 
 interned_slice!(
     Terms,
