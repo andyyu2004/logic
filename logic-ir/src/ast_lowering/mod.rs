@@ -1,20 +1,30 @@
 use crate::*;
 use logic_parse::ast;
 
-pub fn lower_ast<I: Interner>(interner: I, ast: &ast::Program) -> Program<I> {
-    AstLoweringCtx { interner }.lower_program(ast)
+pub fn lower_ast(ast: &ast::Program) -> Program<IRInterner> {
+    AstLoweringCtx::default().lower_program(ast)
 }
 
-pub fn lower_goal<I: Interner>(interner: I, goal: &ast::Goal) -> Goal<I> {
-    AstLoweringCtx { interner }.lower_goal(goal)
+pub fn lower_goal(goal: &ast::Goal) -> Goal<IRInterner> {
+    AstLoweringCtx::default().lower_goal(goal)
 }
 
 /// lowers ast into ir form, not to be confused with trait lowering
-struct AstLoweringCtx<I: Interner> {
-    interner: I,
+// this is not generic over the interner as we only lower the ast
+// which has `term` as its domain goal
+struct AstLoweringCtx {
+    interner: IRInterner,
 }
 
-impl<I: Interner> AstLoweringCtx<I> {
+impl Default for AstLoweringCtx {
+    fn default() -> Self {
+        Self { interner: IRInterner }
+    }
+}
+
+type I = IRInterner;
+
+impl AstLoweringCtx {
     pub fn lower_program(&self, program: &ast::Program) -> Program<I> {
         let mut clauses = vec![];
         for item in &program.items {
@@ -28,7 +38,7 @@ impl<I: Interner> AstLoweringCtx<I> {
 
     pub fn lower_goal(&self, goal: &ast::Goal) -> Goal<I> {
         let goal_data = match goal {
-            ast::Goal::Term(term) => GoalData::Term(self.lower_term(term)),
+            ast::Goal::Term(term) => GoalData::DomainGoal(self.lower_term(term)),
             ast::Goal::Implies(clause, goal) => todo!(),
             ast::Goal::And(lhs, rhs) => GoalData::And(self.lower_goal(lhs), self.lower_goal(rhs)),
             ast::Goal::Or(lhs, rhs) => GoalData::Or(self.lower_goal(lhs), self.lower_goal(rhs)),
@@ -44,14 +54,14 @@ impl<I: Interner> AstLoweringCtx<I> {
         Goals::intern(self.interner, goals.into_iter().map(|goal| self.lower_goal(goal)))
     }
 
-    pub fn lower_term(&self, term: &ast::Term) -> Term<I> {
+    pub fn lower_term(&self, term: &ast::Term) -> impl GenericTerm<I> {
         let term = match term {
             &ast::Term::Atom(atom) => TermData::Atom(atom),
             &ast::Term::Var(var) => TermData::Var(var),
             ast::Term::Structure(functor, terms) =>
                 TermData::Structure(*functor, self.lower_terms(terms)),
         };
-        Term::new(self.interner, self.interner.intern_term(term))
+        GenericTerm::new(self.interner, self.interner.intern_term(term))
     }
 
     pub fn lower_clause(&self, clause: &ast::Clause) -> Clause<I> {

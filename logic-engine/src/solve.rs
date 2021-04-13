@@ -21,7 +21,7 @@ impl<I: Interner> RecursiveSolver<I> {
 
     pub fn solve(&self, goal: &Goal<I>) -> Option<Solution<I>> {
         match self.interner.goal_data(goal) {
-            GoalData::Term(term) => {
+            GoalData::DomainGoal(term) => {
                 for clause in self.interner.clauses(&self.env.clauses) {
                     let clause = self.interner.clause_data(clause);
                     match clause {

@@ -84,11 +84,15 @@ impl<I: Interner> InferCtxt<I> {
         Self { interner, inner: Default::default() }
     }
 
-    pub fn try_unify(&self, t: &Term<I>, u: &Term<I>) -> Option<Term<I>> {
+    pub fn try_unify(&self, t: &I::DomainGoal, u: &I::DomainGoal) -> Option<I::DomainGoal> {
         self.unify(t, u).ok()
     }
 
-    pub fn unify(&self, t: &Term<I>, u: &Term<I>) -> Result<Term<I>, UnificationError> {
+    pub fn unify(
+        &self,
+        t: &I::DomainGoal,
+        u: &I::DomainGoal,
+    ) -> Result<I::DomainGoal, UnificationError> {
         // maybe move this check somewhere else outside
         if t == u {
             return Ok(t.clone());

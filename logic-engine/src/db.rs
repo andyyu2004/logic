@@ -45,7 +45,7 @@ fn ast(db: &dyn LoweringDatabase) -> ParseResult<ast::Program> {
 
 fn ir(db: &dyn LoweringDatabase) -> ParseResult<Program<IRInterner>> {
     let ast = db.ast()?;
-    Ok(logic_ir::lower_ast(IRInterner, &ast))
+    Ok(logic_ir::lower_ast(&ast))
 }
 
 fn interner(db: &dyn LoweringDatabase) -> IRInterner {
