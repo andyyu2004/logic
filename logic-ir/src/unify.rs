@@ -21,7 +21,7 @@ pub trait Unify<I: Interner> {
 
 impl<I: Interner, T: Unify<I>> Unify<I> for Rc<T> {
     fn unify(context: &mut I::UnificationContext, a: &Self, b: &Self) -> UnificationResult<()> {
-        Self::unify(context, a, b)
+        T::unify(context, a, b)
     }
 }
 

@@ -214,7 +214,7 @@ impl<I: Interner> Unify<I> for PrologTermData<I> {
             (PrologTermData::Atom(u), PrologTermData::Atom(v)) => Unify::<I>::unify(context, u, v),
             (PrologTermData::Var(x), PrologTermData::Var(y)) => todo!(),
             (PrologTermData::Structure(f, xs), PrologTermData::Structure(g, ys)) => {
-                let h = Unify::<I>::unify(context, f, g)?;
+                Unify::<I>::unify(context, f, g)?;
                 let xs = interner.terms(xs);
                 let ys = interner.terms(ys);
                 Unify::unify(context, xs, ys)?;
