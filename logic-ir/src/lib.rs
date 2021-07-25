@@ -1,5 +1,6 @@
-// https://www.youtube.com/watch?v=RwBiHLoQ3E4&ab_channel=PapersWeLove
+#![feature(trait_alias)]
 
+// https://www.youtube.com/watch?v=RwBiHLoQ3E4&ab_channel=PapersWeLove
 mod ast_lowering;
 mod debug;
 mod interned;
@@ -12,12 +13,9 @@ pub use ast_lowering::{lower_ast, lower_goal};
 pub use debug::DebugCtxt;
 pub use interned::*;
 pub use interner::Interner;
-pub use logic_parse::{Atom, Sym, Var};
-pub use std::ops::{Deref, DerefMut};
-pub use unify::{Unifier, Unify};
-
-use indexed_vec::newtype_index;
+pub use logic_parse::{Ident, Symbol, Var};
 use std::fmt::{self, Debug, Formatter};
+pub use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 /// an interner that doesn't really intern anything
@@ -26,25 +24,23 @@ use std::rc::Rc;
 pub struct IRInterner;
 
 impl Interner for IRInterner {
-    type DomainGoal = SomeDomainGoal<Self, Self::Term>;
     // type DomainGoal = GenericTerm<Self>;
     // wrapped in `Rc` to make it cheaply cloneable
     // a proper interner should probably use copyable references
     type InternedClause = Rc<ClauseData<Self>>;
     type InternedClauses = Vec<Clause<Self>>;
+    type InternedGenericArg = Rc<GenericArgData<Self>>;
     type InternedGoal = Rc<GoalData<Self>>;
     type InternedGoals = Vec<Goal<Self>>;
-    type InternedTerm = Rc<Self::Term>;
-    type InternedTerms = Vec<Term<Self>>;
-    // This and interned term TODO
-    type Term = PrologTermData<Self>;
-    type UnificationContext = unify::PrologUnifier<Self>;
+    type InternedSubst = Vec<GenericArg<Self>>;
+    type InternedTy = Rc<TyData<Self>>;
+    type InternedTys = Vec<Ty<Self>>;
 
-    fn goal_data<'a>(&self, goal: &'a Self::InternedGoal) -> &'a GoalData<Self> {
+    fn goal_data<'a>(self, goal: &'a Self::InternedGoal) -> &'a GoalData<Self> {
         goal
     }
 
-    fn goals<'a>(&self, goals: &'a Self::InternedGoals) -> &'a [Goal<Self>] {
+    fn goals<'a>(self, goals: &'a Self::InternedGoals) -> &'a [Goal<Self>] {
         goals.as_slice()
     }
 
@@ -56,11 +52,11 @@ impl Interner for IRInterner {
         goals.into_iter().collect()
     }
 
-    fn clause_data<'a>(&self, clause: &'a Self::InternedClause) -> &'a ClauseData<Self> {
+    fn clause_data<'a>(self, clause: &'a Self::InternedClause) -> &'a ClauseData<Self> {
         clause
     }
 
-    fn clauses<'a>(&self, clauses: &'a Self::InternedClauses) -> &'a [Clause<Self>] {
+    fn clauses<'a>(self, clauses: &'a Self::InternedClauses) -> &'a [Clause<Self>] {
         clauses.as_slice()
     }
 
@@ -75,20 +71,39 @@ impl Interner for IRInterner {
         clauses.into_iter().collect()
     }
 
-    fn term_data<'a>(&self, term: &'a Self::InternedTerm) -> &'a Self::Term {
-        todo!()
+    fn ty_data<'a>(self, tys: &'a Self::InternedTy) -> &'a TyData<Self> {
+        tys
     }
 
-    fn terms<'a>(&self, terms: &'a Self::InternedTerms) -> &'a [Term<Self>] {
-        todo!()
+    fn tys<'a>(self, tys: &'a Self::InternedTys) -> &'a [Ty<Self>] {
+        tys.as_slice()
     }
 
-    fn intern_term(self, term: Self::Term) -> Self::InternedTerm {
-        todo!()
+    fn intern_ty(self, ty: TyData<Self>) -> Self::InternedTy {
+        Rc::new(ty)
     }
 
-    fn intern_terms(self, term: impl IntoIterator<Item = Term<Self>>) -> Self::InternedTerms {
-        todo!()
+    fn intern_tys(self, term: impl IntoIterator<Item = Ty<Self>>) -> Self::InternedTys {
+        term.into_iter().collect()
+    }
+
+    fn intern_generic_arg(self, arg: GenericArgData<Self>) -> Self::InternedGenericArg {
+        Rc::new(arg)
+    }
+
+    fn intern_subst(
+        self,
+        subst: impl IntoIterator<Item = GenericArg<Self>>,
+    ) -> Self::InternedSubst {
+        subst.into_iter().collect()
+    }
+
+    fn generic_arg_data<'a>(self, arg: &'a Self::InternedGenericArg) -> &'a GenericArgData<Self> {
+        arg
+    }
+
+    fn subst_data<'a>(self, subst: &'a Self::InternedSubst) -> &'a [GenericArg<Self>] {
+        subst.as_slice()
     }
 }
 
@@ -108,10 +123,10 @@ impl<I: Interner> Program<I> {
 // intuitively "things we want to prove"
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum GoalData<I: Interner> {
-    DomainGoal(I::DomainGoal),
+    DomainGoal(DomainGoal<I>),
     And(Goal<I>, Goal<I>),
     Or(Goal<I>, Goal<I>),
-    // todo exists, impl, forall
+    Implies(Clause<I>, Goal<I>),
 }
 
 impl<I: Interner> Debug for GoalData<I> {
@@ -123,119 +138,99 @@ impl<I: Interner> Debug for GoalData<I> {
     }
 }
 
+#[derive(Hash, Clone, PartialEq, Eq)]
+pub struct TyData<I: Interner> {
+    kind: TyKind<I>,
+}
+
+impl<I: Interner> Debug for TyData<I> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.kind)
+    }
+}
+
+#[derive(Hash, Clone, PartialEq, Eq)]
+pub enum TyKind<I: Interner> {
+    Something(Subst<I>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum GenericArgData<I: Interner> {
+    Ty(Ty<I>),
+}
+
+impl<I: Interner> Debug for TyKind<I> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        todo!()
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub enum DomainGoal<I: Interner> {
+    Holds(Constraint<I>),
+}
+
+impl<I: Interner> Debug for DomainGoal<I> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            DomainGoal::Holds(constraint) => write!(f, "{:?}", constraint),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub enum Constraint<I: Interner> {
+    Implemented(ImplConstraint<I>),
+}
+
+impl<I: Interner> Debug for Constraint<I> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Constraint::Implemented(impl_constraint) => write!(f, "{:?}", impl_constraint),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct ImplConstraint<I: Interner> {
+    ty: Ty<I>,
+    trait_ref: TraitRef<I>,
+}
+
+impl<I: Interner> Debug for ImplConstraint<I> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}: {:?}", self.ty, self.trait_ref)
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct TraitRef<I> {
+    pd: std::marker::PhantomData<I>,
+}
+
+impl<I: Interner> Debug for TraitRef<I> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        todo!()
+    }
+}
+
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum ClauseData<I: Interner> {
     /// <clause> :- <goals>
-    /// empty goal means the implication is a fact
-    Horn(I::DomainGoal, Goals<I>),
+    /// empty goals means the implication is a fact
+    Implies(DomainGoal<I>, Goals<I>),
     // todo forall
 }
 
 impl<I: Interner> Debug for ClauseData<I> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            ClauseData::Horn(consequent, conditions) =>
+            ClauseData::Implies(consequent, conditions) =>
                 if conditions.is_empty() {
                     write!(f, "{:?}", consequent)
                 } else {
                     write!(f, "{:?} :- {:?}", consequent, conditions)
                 },
-        }
-    }
-}
-
-// base type, generalization of what will be a `L Ty`
-// maybe term and generic term not the best names
-pub trait GenericTerm<I: Interner>: Unify<I> {}
-
-impl<I: Interner, T: GenericTerm<I>> GenericTerm<I> for Rc<T> {
-}
-
-#[derive(PartialEq, Eq, Hash, Clone, Debug)]
-pub struct Ty<I: Interner> {
-    _marker: std::marker::PhantomData<I>,
-}
-
-impl<I> Unify<I> for Ty<I>
-where
-    I: Interner,
-{
-    fn unify(
-        context: &mut I::UnificationContext,
-        a: &Self,
-        b: &Self,
-    ) -> unify::UnificationResult<()> {
-        todo!()
-    }
-}
-
-impl<I: Interner> GenericTerm<I> for Ty<I> {
-}
-
-pub trait DomainGoal<I: Interner, T: GenericTerm<I>> {}
-
-#[derive(PartialEq, Eq, Hash, Clone, Debug)]
-pub struct SomeDomainGoal<I: Interner, T: GenericTerm<I>> {
-    _marker_i: std::marker::PhantomData<I>,
-    _marker_t: std::marker::PhantomData<T>,
-}
-
-impl<I: Interner, T: GenericTerm<I>> DomainGoal<I, T> for SomeDomainGoal<I, T> {
-}
-
-newtype_index!(InferenceIdx);
-
-#[derive(PartialEq, Eq, Hash, Clone)]
-pub enum PrologTermData<I: Interner> {
-    Atom(Atom),
-    Var(Var),
-    Structure(Atom, Terms<I>),
-    Infer(InferenceIdx),
-}
-
-impl<I: Interner> Unify<I> for Atom {
-    fn unify(
-        context: &mut I::UnificationContext,
-        a: &Self,
-        b: &Self,
-    ) -> unify::UnificationResult<()> {
-        if a == b { Ok(()) } else { Err(unify::UnificationError) }
-    }
-}
-
-impl<I: Interner> Unify<I> for PrologTermData<I> {
-    fn unify(
-        context: &mut I::UnificationContext,
-        a: &Self,
-        b: &Self,
-    ) -> unify::UnificationResult<()> {
-        let interner = context.interner();
-        match (a, b) {
-            (PrologTermData::Atom(u), PrologTermData::Atom(v)) => Unify::<I>::unify(context, u, v),
-            (PrologTermData::Var(x), PrologTermData::Var(y)) => todo!(),
-            (PrologTermData::Structure(f, xs), PrologTermData::Structure(g, ys)) => {
-                Unify::<I>::unify(context, f, g)?;
-                let xs = interner.terms(xs);
-                let ys = interner.terms(ys);
-                Unify::unify(context, xs, ys)?;
-                Ok(())
-            }
-            (PrologTermData::Infer(_), PrologTermData::Infer(_)) => todo!(),
-            (_, _) => todo!(),
-        }
-    }
-}
-
-impl<I: Interner> GenericTerm<I> for PrologTermData<I> {
-}
-
-impl<I: Interner> Debug for PrologTermData<I> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            PrologTermData::Atom(atom) => write!(f, "{}", atom),
-            PrologTermData::Var(var) => write!(f, "{}", var),
-            PrologTermData::Structure(atom, terms) => write!(f, "{}({:?})", atom, terms),
-            PrologTermData::Infer(infer) => write!(f, "{:?}", infer),
         }
     }
 }

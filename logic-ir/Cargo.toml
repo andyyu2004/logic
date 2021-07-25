@@ -9,3 +9,4 @@ logic-parse = { path = "../logic-parse" }
 util = { path = "../logic-util" }
 ena = "0.14"
 indexed_vec = "1.2.1"
+string_cache = "0.8"

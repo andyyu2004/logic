@@ -1,11 +1,9 @@
 //! macros for creating wrappers around the interned associated types
-use crate::debug::DebugCtxt;
-use crate::unify::{UnificationResult, Unify};
-use crate::{ClauseData, GenericTerm, GoalData, Interner, PrologTermData};
+use crate::*;
 use std::fmt::{self, Debug, Formatter};
 
 macro_rules! interned {
-    ($data:ident => $intern:ident => $ty:ident, $interned:ident, $dbg_method:ident) => {
+    ($get_data:ident => $data:ident, $intern:ident => $ty:ident, $interned:ident, $dbg_method:ident) => {
         #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
         pub struct $ty<I: Interner> {
             pub interner: I,
@@ -15,51 +13,13 @@ macro_rules! interned {
         impl<I: Interner> $ty<I> {
             pub fn new(interner: I, interned: I::$interned) -> Self {
                 Self { interner, interned }
+            }
+
+            pub fn data(&self) -> &$data<I> {
+                self.interner.$get_data(self)
             }
 
             pub fn intern(interner: I, data: $data<I>) -> Self {
-                Self { interner, interned: interner.$intern(data) }
-            }
-        }
-
-        impl<I: Interner> std::ops::Deref for $ty<I> {
-            type Target = I::$interned;
-
-            fn deref(&self) -> &Self::Target {
-                &self.interned
-            }
-        }
-
-        impl<I: Interner> std::ops::DerefMut for $ty<I> {
-            fn deref_mut(&mut self) -> &mut Self::Target {
-                &mut self.interned
-            }
-        }
-
-        impl<I: Interner> Debug for $ty<I> {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                self.interner.$dbg_method(self, f)
-            }
-        }
-    };
-}
-
-// slightly more generic where the interned datatype is defined as an associated type
-// rather than being known already
-macro_rules! interned_generic {
-    ($assoc:ident => $intern:ident => $ty:ident, $interned:ident, $dbg_method:ident) => {
-        #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-        pub struct $ty<I: Interner> {
-            pub interner: I,
-            pub interned: I::$interned,
-        }
-
-        impl<I: Interner> $ty<I> {
-            pub fn new(interner: I, interned: I::$interned) -> Self {
-                Self { interner, interned }
-            }
-
-            pub fn intern(interner: I, data: I::$assoc) -> Self {
                 Self { interner, interned: interner.$intern(data) }
             }
         }
@@ -147,21 +107,23 @@ macro_rules! interned_slice {
     };
 }
 
-interned!(GoalData => intern_goal => Goal, InternedGoal, dbg_goal);
-interned!(ClauseData => intern_clause => Clause, InternedClause, dbg_clause);
-interned_generic!(Term => intern_term => Term, InternedTerm, dbg_term);
-
-impl<I: Interner> Unify<I> for Term<I> {
-    fn unify(context: &mut I::UnificationContext, a: &Self, b: &Self) -> UnificationResult<()> {
-        Unify::unify(context, a, b)
-    }
-}
+interned!(goal_data => GoalData, intern_goal => Goal, InternedGoal, dbg_goal);
+interned!(clause_data => ClauseData, intern_clause => Clause, InternedClause, dbg_clause);
+interned!(ty_data => TyData, intern_ty => Ty, InternedTy, dbg_ty);
+interned!(generic_arg_data => GenericArgData, intern_generic_arg => GenericArg, InternedGenericArg, dbg_generic_arg);
 
 interned_slice!(
-    Terms,
-    terms => Term<I>,
-    intern_terms => InternedTerms,
-    dbg_terms
+    Subst,
+    subst_data => GenericArg<I>,
+    intern_subst => InternedSubst,
+    dbg_subst
+);
+
+interned_slice!(
+    Tys,
+    tys => Ty<I>,
+    intern_tys => InternedTys,
+    dbg_tys
 );
 
 interned_slice!(

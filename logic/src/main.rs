@@ -40,7 +40,7 @@ fn repl(db: Database) -> Result<(), Box<dyn std::error::Error>> {
                         continue;
                     }
                 };
-                todo!()
+                dbg!(goal);
                 // solve(&db, goal)?;
             }
             Err(ReadlineError::Interrupted) => {

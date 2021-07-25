@@ -3,8 +3,67 @@ use crate::symbol::Symbol;
 
 grammar;
 
+pub Program: Program = <(<Item> ".")*> => Program::new(<>);
 
-Comma1<T>: Vec<T> = { 
+pub Item: Item = {
+    <Clause> => Item::Clause(<>)
+}
+
+pub Clause: Clause = {
+    "forall" "<" <vars:Comma1<Var>> ">" <clause:Clause> => Clause::ForAll(vars, Box::new(clause)),
+    // can readd with this when necessary, has precedence/associativity ambiguities the way it's written
+    // <Clause> ":-" <Goal> => Clause::Implies(Box::new(<>), <>),
+    // <Clause> "," <Clause> => Clause::And(Box::new(<>), Box::new(<>)),
+    <DomainGoal> => Clause::DomainGoal(<>),
+}
+
+
+pub Goal: Goal = {
+    <DomainGoal> => Goal::DomainGoal(<>),
+    // <Goal> "," <Goal> => Goal::And(Box::new(<>), Box::new(<>)),
+    // <Goal> ";" <Goal> => Goal::Or(Box::new(<>), Box::new(<>)),
+    // TODO incomplete
+}
+
+pub DomainGoal: DomainGoal = {
+    <Constraint> => DomainGoal::Holds(<>),
+}
+
+pub Constraint: Constraint = {
+    <ImplConstraint> => Constraint::Implemented(<>),
+}
+
+pub ImplConstraint: ImplConstraint = {
+    <ty:Ty> ":" <trait_ref:TraitRef> => ImplConstraint {
+        ty,
+        trait_ref,
+    }
+}
+
+pub TraitRef: TraitRef = {
+    <trait_name:Ident> <args:Angle<Ty>> => TraitRef {
+       trait_name,
+       args
+    }
+}
+
+pub Var: Var = {
+    <Ident> => Var::Ty(<>)
+}
+
+Ident: Ident = {
+    <l:@L> <s:r"([A-Za-z]|_)([A-Za-z0-9]|_)*"> <r:@R> => Ident {
+        symbol: Symbol::from(s),
+        span: Span::new(l, r),
+    }
+};
+
+pub Ty: Ty = {
+    <Ident> <Angle<Ty>> => Ty::Structure(<>),
+}
+
+
+Comma1<T>: Vec<T> = {
     <x:T> <xs:("," <T>)*> ","? => {
         let mut v = vec![x];
         v.extend(xs);
@@ -12,8 +71,13 @@ Comma1<T>: Vec<T> = {
     }
 }
 
-Comma<T>: Vec<T> = { 
-    <v:(<T> ",")*> <e:T?> => match e { 
+Angle<T>: Vec<T> = {
+    "<" <Comma<T>> ">",
+    () => vec![],
+};
+
+Comma<T>: Vec<T> = {
+    <v:(<T> ",")*> <e:T?> => match e {
         None => v,
         Some(e) => {
             let mut v = v;
@@ -22,29 +86,3 @@ Comma<T>: Vec<T> = {
         }
     }
 }
-
-pub Program: Program = <(<Item> ".")*> => Program::new(<>);
-
-pub Item: Item = {
-    <Clause> => Item::Clause(<>)
-}
-
-pub Goal: Goal = {
-    <Term> => Goal::Term(<>),
-}
-
-pub Clause: Clause = {
-    "forall" "<" <vars:Comma1<Var>> ">" <clause:Clause> => Clause::Forall(vars, Box::new(clause)),
-    <Term> ":-" <Comma1<Goal>> => Clause::Horn(<>),
-    <Term> => Clause::Horn(<>, vec![]),
-}
-
-pub Var: Var = <v:r"[A-Z]\w*"> => Var::new(Symbol::intern(v));
-pub Atom: Atom = <atom:r"[a-z]\w*"> => Atom::new(Symbol::intern(atom));
-
-pub Term: Term = {
-    <Atom> "(" <Comma1<Term>> ")" => Term::Structure(<>),
-    <Atom> => Term::Atom(<>),
-    <Var> => Term::Var(<>),
-}
-

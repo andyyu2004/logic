@@ -7,5 +7,4 @@ members = [
     "logic-ir",
     "logic-parse",
     "logic-util",
-    "examples/logic-datalog"
 ]
