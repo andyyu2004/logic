@@ -1,6 +1,5 @@
 use crate::*;
-use logic_error::LogicResult;
-use logic_ir::{IRInterner, Program};
+use logic_ir::{IRInterner, LogicResult, Program};
 use logic_parse::{ast, ParseResult};
 use std::sync::Arc;
 
@@ -53,7 +52,8 @@ fn interner(db: &dyn LoweringDatabase) -> IRInterner {
 }
 
 fn env(db: &dyn LoweringDatabase) -> LogicResult<Environment<IRInterner>> {
-    let ir = db.ir()?;
-    let env = Environment::new(ir.clauses);
-    Ok(env)
+    // let ir = db.ir()?;
+    // let env = Environment::new(ir.clauses);
+    // Ok(env)
+    todo!()
 }

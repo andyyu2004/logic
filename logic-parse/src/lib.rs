@@ -27,15 +27,27 @@ pub fn parse_goal(src: &str) -> ParseResult<Goal> {
     parse(src, |src| parser::GoalParser::new().parse(src))
 }
 
+pub fn parse_ty(src: &str) -> ParseResult<Ty> {
+    parse(src, |src| parser::TyParser::new().parse(src))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    // #[test]
-    // fn parse_term_test() {
-    //     let _term = parser::TyParser::new().parse("a(b,c,d)").unwrap();
-    //     let _term = parser::TyParser::new().parse("cool(bob)").unwrap();
-    // }
+    #[test]
+    fn parse_term_test() -> ParseResult<()> {
+        let _term = parse_ty("Vec<T>")?;
+        let _term = parse_ty("Vec<Result<i32, Box<T>>>")?;
+        Ok(())
+    }
+
+    #[test]
+    fn parse_goal_test() -> ParseResult<()> {
+        let _goal = parse_goal("i32: Clone")?;
+        let _goal = parse_goal("Vec<T>: Trait<T>")?;
+        Ok(())
+    }
 
     // #[test]
     // fn parse_clause_test() {

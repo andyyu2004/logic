@@ -2,6 +2,10 @@ use crate::*;
 use std::fmt::Debug;
 use std::hash::Hash;
 
+pub trait HasInterner {
+    type Interner: Interner;
+}
+
 pub trait Internable = Clone + Eq + Hash + Debug;
 // the trait bounds are required as most types are parameterized by an interner
 // this has become a bit of a dumping ground for all types, probably not ideal

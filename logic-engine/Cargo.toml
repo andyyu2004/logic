@@ -6,7 +6,6 @@ edition = "2018"
 
 [dependencies]
 logic-ir = { path = "../logic-ir" }
-logic-error = { path = "../logic-error" }
 logic-parse = { path = "../logic-parse" }
 salsa = "0.16.0"
 ena = "0.14"

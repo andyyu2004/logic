@@ -15,12 +15,12 @@ macro_rules! interned {
                 Self { interner, interned }
             }
 
-            pub fn data(&self) -> &$data<I> {
-                self.interner.$get_data(self)
+            pub fn intern(interner: I, data: $data<I>) -> Self {
+                Self::new(interner, interner.$intern(data))
             }
 
-            pub fn intern(interner: I, data: $data<I>) -> Self {
-                Self { interner, interned: interner.$intern(data) }
+            pub fn data(&self) -> &$data<I> {
+                self.interner.$get_data(self)
             }
         }
 
@@ -60,6 +60,10 @@ macro_rules! interned_slice {
                 Self { interner, interned: interner.$intern(iter) }
             }
 
+            pub fn empty(interner: I) -> Self {
+                Self::intern(interner, std::iter::empty())
+            }
+
             pub fn interned(&self) -> &I::$interned {
                 &self.interned
             }
@@ -82,6 +86,15 @@ macro_rules! interned_slice {
 
             pub fn len(&self) -> usize {
                 self.as_slice().len()
+            }
+        }
+
+        impl<'a, I: Interner> IntoIterator for &'a $seq<I> {
+            type IntoIter = std::slice::Iter<'a, $elem>;
+            type Item = &'a $elem;
+
+            fn into_iter(self) -> Self::IntoIter {
+                self.as_slice().iter()
             }
         }
 

@@ -1,5 +1,11 @@
 #![feature(trait_alias)]
 
+#[macro_use]
+extern crate logic_derive;
+
+// for proc macro to be able to refer to this crate
+extern crate self as logic_ir;
+
 // https://www.youtube.com/watch?v=RwBiHLoQ3E4&ab_channel=PapersWeLove
 mod ast_lowering;
 mod debug;
@@ -8,15 +14,20 @@ mod interner;
 mod unify;
 
 pub mod tls;
+mod zip;
 
 pub use ast_lowering::{lower_ast, lower_goal};
 pub use debug::DebugCtxt;
+use indexed_vec::newtype_index;
 pub use interned::*;
 pub use interner::Interner;
 pub use logic_parse::{Ident, Symbol, Var};
 use std::fmt::{self, Debug, Formatter};
 pub use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
+use util::join_dbg;
+
+newtype_index!(InferenceIdx);
 
 /// an interner that doesn't really intern anything
 // the default "interner" for internal use
@@ -121,12 +132,13 @@ impl<I: Interner> Program<I> {
 }
 
 // intuitively "things we want to prove"
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, HasInterner, Zip)]
 pub enum GoalData<I: Interner> {
     DomainGoal(DomainGoal<I>),
     And(Goal<I>, Goal<I>),
     Or(Goal<I>, Goal<I>),
     Implies(Clause<I>, Goal<I>),
+    True,
 }
 
 impl<I: Interner> Debug for GoalData<I> {
@@ -140,7 +152,14 @@ impl<I: Interner> Debug for GoalData<I> {
 
 #[derive(Hash, Clone, PartialEq, Eq)]
 pub struct TyData<I: Interner> {
+    // todo tyflags
     kind: TyKind<I>,
+}
+
+impl<I: Interner> TyData<I> {
+    pub fn new(kind: TyKind<I>) -> Self {
+        Self { kind }
+    }
 }
 
 impl<I: Interner> Debug for TyData<I> {
@@ -151,7 +170,13 @@ impl<I: Interner> Debug for TyData<I> {
 
 #[derive(Hash, Clone, PartialEq, Eq)]
 pub enum TyKind<I: Interner> {
-    Something(Subst<I>),
+    Structure(Ident, Tys<I>),
+}
+
+impl<I: Interner> TyKind<I> {
+    pub fn intern(self, interner: I) -> Ty<I> {
+        Ty::intern(interner, TyData::new(self))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -161,11 +186,14 @@ pub enum GenericArgData<I: Interner> {
 
 impl<I: Interner> Debug for TyKind<I> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        todo!()
+        match self {
+            TyKind::Structure(functor, args) =>
+                write!(f, "{}<{}>", functor, join_dbg(args.as_slice(), ", ")),
+        }
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, HasInterner, Zip)]
 pub enum DomainGoal<I: Interner> {
     Holds(Constraint<I>),
 }
@@ -178,7 +206,7 @@ impl<I: Interner> Debug for DomainGoal<I> {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, Zip, HasInterner)]
 pub enum Constraint<I: Interner> {
     Implemented(ImplConstraint<I>),
 }
@@ -191,7 +219,7 @@ impl<I: Interner> Debug for Constraint<I> {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, Zip, HasInterner)]
 pub struct ImplConstraint<I: Interner> {
     ty: Ty<I>,
     trait_ref: TraitRef<I>,
@@ -203,34 +231,36 @@ impl<I: Interner> Debug for ImplConstraint<I> {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct TraitRef<I> {
-    pd: std::marker::PhantomData<I>,
+#[derive(Clone, PartialEq, Eq, Hash, HasInterner, Zip)]
+pub struct TraitRef<I: Interner> {
+    pub trait_name: Ident,
+    pub args: Tys<I>,
 }
 
 impl<I: Interner> Debug for TraitRef<I> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        todo!()
+        write!(f, "{}<{}>", self.trait_name, util::join_dbg(self.args.as_slice(), ", "))
     }
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum ClauseData<I: Interner> {
-    /// <clause> :- <goals>
-    /// empty goals means the implication is a fact
-    Implies(DomainGoal<I>, Goals<I>),
-    // todo forall
+    /// <clause> :- <goal>
+    Implies(DomainGoal<I>, Goal<I>),
 }
 
 impl<I: Interner> Debug for ClauseData<I> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            ClauseData::Implies(consequent, conditions) =>
-                if conditions.is_empty() {
-                    write!(f, "{:?}", consequent)
-                } else {
-                    write!(f, "{:?} :- {:?}", consequent, conditions)
-                },
+            ClauseData::Implies(consequent, condition) =>
+                write!(f, "{:?} :- {:?}", consequent, condition),
         }
     }
+}
+
+pub type LogicResult<T> = Result<T, LogicError>;
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub enum LogicError {
+    NoSolution,
 }

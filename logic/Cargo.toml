@@ -6,7 +6,6 @@ edition = "2018"
 
 [dependencies]
 logic-engine = { path = "../logic-engine" }
-logic-error = { path = "../logic-error" }
 logic-parse = { path = "../logic-parse" }
 logic-ir = { path = "../logic-ir" }
 rustyline = "7.1.0"

@@ -1,0 +1,14 @@
+[package]
+name = "logic-derive"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+synstructure = "0.12.5"
+quote = "1.0"
+proc-macro2 = "1.0"
+syn = { version = "1.0", features = ["full"] }
+

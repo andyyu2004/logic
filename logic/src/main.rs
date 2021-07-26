@@ -1,7 +1,6 @@
 use clap::Clap;
-use logic_engine::db::{Database, LogicDatabase, LoweringDatabase};
-use logic_error::LogicResult;
-use logic_ir::{tls, IRInterner};
+use logic_engine::db::{Database, LoweringDatabase};
+use logic_ir::{tls, IRInterner, LogicResult};
 use logic_parse::ast;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
@@ -40,7 +39,7 @@ fn repl(db: Database) -> Result<(), Box<dyn std::error::Error>> {
                         continue;
                     }
                 };
-                dbg!(goal);
+                dbg!(&goal);
                 // solve(&db, goal)?;
             }
             Err(ReadlineError::Interrupted) => {
@@ -59,13 +58,14 @@ fn repl(db: Database) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// fn solve(db: &Database, goal: ast::Goal) -> LogicResult<()> {
-// tls::set_debug_ctxt(Box::new(IRInterner));
-// let goal = logic_ir::lower_goal(&goal);
-// let env = db.env()?;
-// dbg!(&env);
-// dbg!(&goal);
-// let solver = logic_engine::RecursiveSolver::new(IRInterner, env);
-// dbg!(solver.solve(&goal));
-// Ok(())
-// }
+fn solve(db: &Database, goal: ast::Goal) -> LogicResult<()> {
+    todo!();
+    // tls::set_debug_ctxt(Box::new(IRInterner));
+    // let goal = logic_ir::lower_goal(&goal);
+    // let env = db.env()?;
+    // dbg!(&env);
+    // dbg!(&goal);
+    // let solver = logic_engine::RecursiveSolver::new(IRInterner, env);
+    // dbg!(solver.solve(&goal));
+    Ok(())
+}

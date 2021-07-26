@@ -315,7 +315,6 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "logic-engine",
- "logic-error",
  "logic-ir",
  "logic-parse",
  "rustyline",
@@ -326,22 +325,24 @@ name = "logic-core"
 version = "0.1.0"
 
 [[package]]
+name = "logic-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+ "synstructure",
+]
+
+[[package]]
 name = "logic-engine"
 version = "0.1.0"
 dependencies = [
  "ena",
  "indexed_vec",
- "logic-error",
  "logic-ir",
  "logic-parse",
  "salsa",
-]
-
-[[package]]
-name = "logic-error"
-version = "0.1.0"
-dependencies = [
- "thiserror",
 ]
 
 [[package]]
@@ -350,6 +351,7 @@ version = "0.1.0"
 dependencies = [
  "ena",
  "indexed_vec",
+ "logic-derive",
  "logic-parse",
  "string_cache",
  "util",
@@ -669,6 +671,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "synstructure"
+version = "0.12.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "474aaa926faa1603c40b7885a9eaea29b444d1cb2850cb7c0e37bb1a4182f4fa"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+ "unicode-xid",
+]
+
+[[package]]
 name = "term"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -695,26 +709,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "203008d98caf094106cfaba70acfed15e18ed3ddb7d94e49baec153a2b462789"
 dependencies = [
  "unicode-width",
-]
-
-[[package]]
-name = "thiserror"
-version = "1.0.26"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93119e4feac1cbe6c798c34d3a53ea0026b0b1de6a120deef895137c0529bfe2"
-dependencies = [
- "thiserror-impl",
-]
-
-[[package]]
-name = "thiserror-impl"
-version = "1.0.26"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "060d69a0afe7796bf42e9e2ff91f5ee691fb15c53d38b4b62a9a53eb23164745"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
