@@ -17,6 +17,7 @@ pub trait Interner: Copy + Eq + Hash + Debug {
     type InternedClauses: Internable;
     type InternedTy: Internable;
     type InternedSubst: Internable;
+    type InternedVariables: Internable;
 
     fn goal_data<'a>(self, goal: &'a Self::InternedGoal) -> &'a GoalData<Self>;
     fn goals<'a>(self, goals: &'a Self::InternedGoals) -> &'a [Goal<Self>];
@@ -35,4 +36,10 @@ pub trait Interner: Copy + Eq + Hash + Debug {
     fn subst_data<'a>(self, tys: &'a Self::InternedSubst) -> &'a [Ty<Self>];
     fn intern_ty(self, ty: TyData<Self>) -> Self::InternedTy;
     fn intern_subst(self, tys: impl IntoIterator<Item = Ty<Self>>) -> Self::InternedSubst;
+
+    fn variables<'a>(self, vars: &'a Self::InternedVariables) -> &'a [Variable<Self>];
+    fn intern_variables<'a>(
+        self,
+        vars: impl IntoIterator<Item = Variable<Self>>,
+    ) -> Self::InternedVariables;
 }

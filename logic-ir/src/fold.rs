@@ -26,6 +26,18 @@ impl<I: Interner> Fold<I> for Subst<I> {
     }
 }
 
+impl<I: Interner, T> Fold<I> for Binders<T>
+where
+    T: HasInterner<Interner = I> + Fold<I>,
+    T::Folded: HasInterner<Interner = I>,
+{
+    type Folded = Binders<T::Folded>;
+
+    fn fold_with<F: Folder<I>>(self, folder: &mut F) -> LogicResult<Self::Folded> {
+        Ok(Binders::new(self.binders, self.value.fold_with(folder)?))
+    }
+}
+
 macro_rules! fold_interned {
     ($interned:ty) => {
         impl<I: Interner> Fold<I> for $interned {

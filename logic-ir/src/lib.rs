@@ -26,9 +26,10 @@ pub use ast_lowering::{lower_ast, lower_goal};
 pub use debug::DebugCtxt;
 use indexed_vec::{newtype_index, Idx};
 pub use interned::*;
-pub use interner::Interner;
+pub use interner::*;
 pub use logic_parse::{Ident, Symbol, Var};
 use std::fmt::{self, Debug, Display, Formatter};
+use std::marker::PhantomData;
 pub use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
@@ -47,6 +48,7 @@ impl Interner for LogicInterner {
     type InternedGoals = Vec<Goal<Self>>;
     type InternedSubst = Vec<Ty<Self>>;
     type InternedTy = Rc<TyData<Self>>;
+    type InternedVariables = Vec<Variable<Self>>;
 
     fn goal_data<'a>(self, goal: &'a Self::InternedGoal) -> &'a GoalData<Self> {
         goal
@@ -98,6 +100,17 @@ impl Interner for LogicInterner {
     fn intern_subst(self, subst: impl IntoIterator<Item = Ty<Self>>) -> Self::InternedSubst {
         subst.into_iter().collect()
     }
+
+    fn variables<'a>(self, vars: &'a Self::InternedVariables) -> &'a [Variable<Self>] {
+        vars.as_slice()
+    }
+
+    fn intern_variables<'a>(
+        self,
+        vars: impl IntoIterator<Item = Variable<Self>>,
+    ) -> Self::InternedVariables {
+        vars.into_iter().collect()
+    }
 }
 
 /// top level program
@@ -126,8 +139,11 @@ pub enum GoalData<I: Interner> {
 impl<I: Interner> Debug for GoalData<I> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::DomainGoal(domain_goal) => write!(f, "{:?}", domain_goal),
-            _ => todo!(),
+            GoalData::DomainGoal(domain_goal) => write!(f, "{:?}", domain_goal),
+            GoalData::And(_, _) => todo!(),
+            GoalData::Or(_, _) => todo!(),
+            GoalData::Implies(_, _) => todo!(),
+            GoalData::True => write!(f, "⊤"),
         }
     }
 }
@@ -284,21 +300,58 @@ impl<I: Interner> Debug for TraitRef<I> {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Zip, Fold)]
-pub enum ClauseData<I: Interner> {
-    /// <clause> :- <goal>
-    Implies(Implication<I>),
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub struct Variable<I: Interner> {
+    phantom: PhantomData<I>,
 }
 
-impl<I: Interner> Debug for ClauseData<I> {
+impl<I: Interner> Variable<I> {
+    pub fn new() -> Self {
+        Self { phantom: PhantomData }
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct Binders<T: HasInterner> {
+    pub binders: Variables<T::Interner>,
+    value: T,
+}
+
+impl<T: HasInterner> Binders<T> {
+    pub fn new(binders: Variables<T::Interner>, value: T) -> Self {
+        Self { binders, value }
+    }
+
+    pub fn split(self) -> (Variables<T::Interner>, T) {
+        (self.binders, self.value)
+    }
+
+    pub fn empty(interner: T::Interner, value: T) -> Self {
+        Self::new(Variables::empty(interner), value)
+    }
+}
+
+impl<T: HasInterner + Debug> Debug for Binders<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            ClauseData::Implies(implication) => write!(f, "{:?}", implication),
-        }
+        write!(f, "for<{}> {{ {:?} }}", util::join_dbg(&self.binders, ","), self.value)
     }
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Zip, Fold)]
+pub enum ClauseData<I: Interner> {
+    Implies(Binders<Implication<I>>),
+}
+
+impl<I: Interner> Debug for ClauseData<I> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        todo!()
+        // match self {
+        //     ClauseData::Implies(implication) => write!(f, "{:?}", implication),
+        // }
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash, Zip, Fold, HasInterner)]
 pub struct Implication<I: Interner> {
     pub consequent: DomainGoal<I>,
     pub condition: Goal<I>,

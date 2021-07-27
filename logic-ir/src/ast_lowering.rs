@@ -86,17 +86,29 @@ impl AstLoweringCtx {
     pub fn lower_clause(&self, clause: &ast::Clause) -> Clause<LogicInterner> {
         let clause_data = match clause {
             // lower known domain goals into an implication with a trivially true condition
-            ast::Clause::DomainGoal(domain_goal) => ClauseData::Implies(Implication {
-                consequent: self.lower_domain_goal(domain_goal),
-                condition: Goal::intern(self.interner, GoalData::True),
-            }),
-            ast::Clause::Implies(domain_goal, goal) => ClauseData::Implies(Implication {
-                consequent: self.lower_domain_goal(domain_goal),
-                condition: self.lower_goal(goal),
-            }),
-            ast::Clause::ForAll(_, _) => todo!(),
+            ast::Clause::DomainGoal(domain_goal) => ClauseData::Implies(Binders::empty(
+                self.interner,
+                Implication {
+                    consequent: self.lower_domain_goal(domain_goal),
+                    condition: Goal::intern(self.interner, GoalData::True),
+                },
+            )),
+            ast::Clause::Implies(implication) =>
+                ClauseData::Implies(self.lower_implication(implication)),
             ast::Clause::And(_, _) => todo!(),
         };
         Clause::intern(self.interner, clause_data)
+    }
+
+    pub fn lower_implication(
+        &self,
+        implication: &ast::Implication,
+    ) -> Binders<Implication<LogicInterner>> {
+        let consequent = self.lower_domain_goal(&implication.consequent);
+        let condition = self.lower_goal(&implication.condition);
+
+        let variables = implication.vars.iter().map(|_| Variable::new());
+        let value = Implication { consequent, condition };
+        Binders::new(Variables::intern(self.interner, variables), value)
     }
 }

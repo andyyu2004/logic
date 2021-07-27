@@ -46,11 +46,10 @@ macro_rules! interned {
 }
 
 macro_rules! interned_slice {
-    ($seq:ident, $data:ident => $elem:ty, $intern:ident => $interned:ident, $dbg_method:ident) => {
+    ($seq:ident, $data:ident => $elem:ty, $intern:ident => $interned:ident) => {
         /// List of interned elements.
         #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
         pub struct $seq<I: Interner> {
-            // TODO is it better to hold the interner or to pass it in when required?
             pub interner: I,
             pub interned: I::$interned,
         }
@@ -114,7 +113,7 @@ macro_rules! interned_slice {
 
         impl<I: Interner> std::fmt::Debug for $seq<I> {
             fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                self.interner.$dbg_method(self, f)
+                self.interned.fmt(f)
             }
         }
     };
@@ -133,20 +132,23 @@ interned!(ty_data => TyData, intern_ty => Ty, InternedTy, dbg_ty);
 interned_slice!(
     Subst,
     subst_data => Ty<I>,
-    intern_subst => InternedSubst,
-    dbg_subst
+    intern_subst => InternedSubst
+);
+
+interned_slice!(
+    Variables,
+    variables => Variable<I>,
+    intern_variables => InternedVariables
 );
 
 interned_slice!(
     Clauses,
     clauses => Clause<I>,
-    intern_clauses => InternedClauses,
-    dbg_clauses
+    intern_clauses => InternedClauses
 );
 
 interned_slice!(
     Goals,
     goals => Goal<I>,
-    intern_goals => InternedGoals,
-    dbg_goals
+    intern_goals => InternedGoals
 );

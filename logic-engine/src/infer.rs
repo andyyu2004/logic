@@ -83,9 +83,12 @@ impl<'a, I: Interner> InferCtxt<'a, I> {
         table: InferenceTable<I>,
         subst: Subst<I>,
         domain_goal: Canonical<DomainGoal<I>>,
-        implication: Implication<I>,
+        implication: Binders<Implication<I>>,
     ) -> LogicResult<Self> {
         let mut infcx = Self { solver, subst, table, obligations: vec![] };
+        dbg!(&implication);
+        let implication = infcx.instantiate(implication);
+        dbg!(&implication);
         infcx.unify(&domain_goal.value, &implication.consequent)?;
         Ok(infcx)
     }

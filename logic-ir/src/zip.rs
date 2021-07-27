@@ -2,11 +2,14 @@ use crate::*;
 
 pub trait Zipper<I: Interner>: Sized {
     fn interner(&self) -> I;
+    fn zip_tys(&mut self, a: &Ty<I>, b: &Ty<I>) -> LogicResult<()>;
+    fn zip_binders<T>(&mut self, a: &Binders<T>, b: &Binders<T>) -> LogicResult<()>
+    where
+        T: HasInterner<Interner = I> + Zip<I>;
+
     fn zip<Z: Zip<I> + ?Sized>(&mut self, a: &Z, b: &Z) -> LogicResult<()> {
         Zip::zip_with(self, a, b)
     }
-
-    fn zip_tys(&mut self, a: &Ty<I>, b: &Ty<I>) -> LogicResult<()>;
 
     fn zip_substs(&mut self, a: &Subst<I>, b: &Subst<I>) -> LogicResult<()>
     where
@@ -36,6 +39,15 @@ impl<'a, T: ?Sized + Zip<I>, I: Interner> Zip<I> for &'a T {
 impl<I: Interner> Zip<I> for Ty<I> {
     fn zip_with<Z: Zipper<I>>(zipper: &mut Z, a: &Self, b: &Self) -> LogicResult<()> {
         zipper.zip_tys(a, b)
+    }
+}
+
+impl<I: Interner, T> Zip<I> for Binders<T>
+where
+    T: HasInterner<Interner = I> + Zip<I>,
+{
+    fn zip_with<Z: Zipper<I>>(zipper: &mut Z, a: &Self, b: &Self) -> LogicResult<()> {
+        zipper.zip_binders(a, b)
     }
 }
 

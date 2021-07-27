@@ -1,5 +1,4 @@
-use logic_ir::zip::{Zip, Zipper};
-use logic_ir::{Interner, LogicError, LogicResult, Ty, TyKind};
+use logic_ir::*;
 
 pub trait CanUnify<I: Interner> {
     fn can_unify(&self, interner: I, other: &Self) -> bool;
@@ -25,6 +24,17 @@ impl<I: Interner> Zipper<I> for MatchZipper<I> {
         };
 
         if can_match { Ok(()) } else { Err(LogicError::NoSolution) }
+    }
+
+    fn zip_binders<T>(
+        &mut self,
+        a: &logic_ir::Binders<T>,
+        b: &logic_ir::Binders<T>,
+    ) -> LogicResult<()>
+    where
+        T: HasInterner<Interner = I> + Zip<I>,
+    {
+        todo!()
     }
 }
 

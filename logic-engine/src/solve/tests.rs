@@ -1,3 +1,5 @@
+use logic_ir::{LogicInterner, Subst};
+
 macro_rules! query {
     ($src:ident:  $goal:tt) => {{
         use logic_driver::LoweringDatabase;
@@ -12,14 +14,15 @@ fn test_solve_simple_implication() {
     Option<i32>: Copy.
     ";
     let solution = query!(program: "Option<i32>: Clone");
-    assert!(solution.is_unique())
+    assert_eq!(solution.into_unique(), Subst::empty(LogicInterner));
 }
 
 #[test]
 fn test_solve() {
     let program = r"
     forall<T> { Vec<T>: Clone :- T: Clone }.
+    i32: Clone.
     ";
-    let solution = query!(program: "Vec<i32> : Clone");
+    let solution = query!(program: "Vec<i32>: Clone");
     dbg!(solution);
 }

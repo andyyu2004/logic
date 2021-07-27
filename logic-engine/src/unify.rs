@@ -32,4 +32,11 @@ impl<I: Interner> Zipper<I> for Unifier<'_, I> {
     fn zip_tys(&mut self, t: &Ty<I>, u: &Ty<I>) -> LogicResult<()> {
         self.unify_ty_ty(t, u)
     }
+
+    fn zip_binders<T>(&mut self, a: &Binders<T>, b: &Binders<T>) -> LogicResult<()>
+    where
+        T: HasInterner<Interner = I> + Zip<I>,
+    {
+        todo!()
+    }
 }

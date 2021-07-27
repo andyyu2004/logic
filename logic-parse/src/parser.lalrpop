@@ -10,11 +10,22 @@ pub Item: Item = {
 }
 
 pub Clause: Clause = {
-    "forall" "<" <vars:Comma1<Var>> ">" "{" <clause:Clause> "}" => Clause::ForAll(vars, Box::new(clause)),
-    // can readd with this when necessary, has precedence/associativity ambiguities the way it's written
-    <DomainGoal> ":-" <Goal> => Clause::Implies(<>),
+    <Implication> => Clause::Implies(<>),
     // <Clause> "," <Clause> => Clause::And(Box::new(<>), Box::new(<>)),
     <DomainGoal> => Clause::DomainGoal(<>),
+}
+
+pub Implication: Implication = {
+    "forall" "<" <vars:Comma1<Var>> ">" "{" <consequent:DomainGoal> ":-" <condition:Goal> "}" => Implication {
+        vars,
+        consequent,
+        condition
+    },
+    <consequent:DomainGoal> ":-" <condition:Goal> => Implication {
+        vars: vec![],
+        consequent,
+        condition
+    }
 }
 
 

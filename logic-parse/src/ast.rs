@@ -96,24 +96,41 @@ pub struct TraitRef {
 // "things we know"
 #[derive(Debug, Eq, Clone, PartialEq)]
 pub enum Clause {
+    Implies(Implication),
     DomainGoal(DomainGoal),
     // if we can prove goal, then clause is true,
     // *NOTE* the lhs of implication is a clause in the chalk grammar,
     // do we lose any expressiveness by making it a domaingoal?
-    Implies(DomainGoal, Goal),
     // <clause>,<clause>
     And(Box<Clause>, Box<Clause>),
-    ForAll(Vec<Var>, Box<Clause>),
 }
 
 impl Display for Clause {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Clause::DomainGoal(domain_goal) => write!(f, "{}", domain_goal),
-            Clause::ForAll(vars, clause) => write!(f, "∀<{}>.{}", util::join(vars, ","), clause),
-            Clause::Implies(term, goal) => write!(f, "{} :- {}", term, goal),
+            Clause::Implies(implication) => write!(f, "{}", implication),
             Clause::And(lhs, rhs) => write!(f, "{} && {}", lhs, rhs),
         }
+    }
+}
+
+#[derive(Debug, Eq, Clone, PartialEq)]
+pub struct Implication {
+    pub vars: Vec<Var>,
+    pub consequent: DomainGoal,
+    pub condition: Goal,
+}
+
+impl Display for Implication {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "for<{}> {{ {} :- {} }}",
+            util::join(&self.vars, ","),
+            self.consequent,
+            self.condition
+        )
     }
 }
 

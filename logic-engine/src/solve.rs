@@ -89,6 +89,10 @@ impl<I: Interner> Solution<I> {
     pub fn is_unique(&self) -> bool {
         matches!(self, Self::Unique(..))
     }
+
+    pub fn into_unique(self) -> Subst<I> {
+        if let Self::Unique(v) = self { v } else { panic!() }
+    }
 }
 
 #[cfg(test)]
