@@ -12,7 +12,7 @@ fn test_solve_simple_implication() {
     Option<i32>: Copy.
     ";
     let solution = query!(program: "Option<i32>: Clone");
-    dbg!(solution);
+    assert!(solution.is_unique())
 }
 
 #[test]

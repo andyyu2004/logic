@@ -50,6 +50,7 @@ impl<I: Interner> InferenceTable<I> {
     }
 
     pub fn unify_var_value(&mut self, var: InferVar<I>, ty: Ty<I>) {
+        // TODO occurs check
         self.unify.unify_var_value(var, InferenceValue::Known(ty)).unwrap()
     }
 

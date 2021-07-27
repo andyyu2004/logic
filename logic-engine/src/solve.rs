@@ -23,7 +23,7 @@ impl<I: Interner> RecursiveSolver<I> {
 
     pub fn solve_from_clauses(&self, domain_goal: &DomainGoal<I>) -> SolutionResult<I> {
         let interner = self.interner;
-        let mut current_solution = None;
+        let mut current_solution: Option<Solution<I>> = None;
         for clause in &self.env.clauses {
             match clause.data(interner) {
                 ClauseData::Implies(implication) => {
@@ -38,21 +38,24 @@ impl<I: Interner> RecursiveSolver<I> {
 
                     let (infer, subst, goal) = InferenceTable::from_canonical(interner, canonical);
 
-                    let infcx = InferCtxt::from_implication(
+                    if let Ok(solution) = InferCtxt::from_implication(
                         self,
                         infer,
                         subst,
                         Canonical { value: goal },
                         implication.clone(),
-                    )?;
-
-                    let solution = infcx.solve()?;
-                    match solution {
-                        Solution::Unique(..) => match current_solution.take() {
-                            Some(..) => return Ok(Solution::Ambiguous),
-                            None => current_solution = Some(solution),
-                        },
-                        Solution::Ambiguous => continue,
+                    )
+                    .and_then(|infcx| infcx.solve())
+                    {
+                        match solution {
+                            Solution::Unique(..) => match &current_solution {
+                                // found two different solutions
+                                Some(curr_sol) if &solution != curr_sol =>
+                                    return Ok(Solution::Ambiguous),
+                                _ => current_solution = Some(solution),
+                            },
+                            Solution::Ambiguous => continue,
+                        }
                     }
                 }
             }
@@ -79,6 +82,13 @@ impl<I: Interner> RecursiveSolver<I> {
 pub enum Solution<I: Interner> {
     Unique(Subst<I>),
     Ambiguous,
+}
+
+impl<I: Interner> Solution<I> {
+    /// Returns `true` if the solution is [`Unique`].
+    pub fn is_unique(&self) -> bool {
+        matches!(self, Self::Unique(..))
+    }
 }
 
 #[cfg(test)]
