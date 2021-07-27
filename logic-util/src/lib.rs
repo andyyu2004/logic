@@ -13,3 +13,11 @@ where
 {
     ts.into_iter().map(|x| format!("{:?}", x)).collect::<Vec<_>>().join(sep)
 }
+
+pub fn fmt_generic_args<'a, T: Debug, I: ?Sized>(ts: &'a I) -> String
+where
+    &'a I: IntoIterator<Item = T>,
+{
+    let vec = ts.into_iter().map(|x| format!("{:?}", x)).collect::<Vec<_>>();
+    if vec.is_empty() { String::new() } else { format!("<{}>", vec.join(", ")) }
+}

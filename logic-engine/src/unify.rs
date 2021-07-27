@@ -1,87 +1,35 @@
-use indexed_vec::Idx;
-// use indexed_vec::Idx;
+use crate::infer::{InferCtxt, InferenceTable};
 use logic_ir::*;
-use std::cell::RefCell;
-use std::fmt::{self, Debug, Formatter};
 
-pub enum UnificationError {
-    // TODO
-    Failed,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct InferVar<I: Interner> {
-    idx: InferenceIdx,
-    phantom: std::marker::PhantomData<I>,
-}
-
-impl<I: Interner> InferVar<I> {
-    pub fn new(idx: InferenceIdx) -> Self {
-        Self { idx, phantom: std::marker::PhantomData }
+impl<I: Interner> InferCtxt<'_, I> {
+    pub fn unify<T: Zip<I>>(&mut self, a: &T, b: &T) -> LogicResult<()> {
+        self.with_snapsnot(|infcx| Unifier { table: &mut infcx.table }.zip(a, b))
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum InferenceValue<I: Interner> {
-    Bound(Ty<I>),
-    Unbound,
+pub struct Unifier<'i, I: Interner> {
+    table: &'i mut InferenceTable<I>,
 }
 
-impl<I: Interner> Debug for InferVar<I> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "?{:?}", self.idx)
+impl<I: Interner> Unifier<'_, I> {
+    fn unify_ty_ty(&mut self, t: &Ty<I>, u: &Ty<I>) -> LogicResult<()> {
+        let interner = self.interner();
+        match (t.kind(interner), u.kind(interner)) {
+            (TyKind::Structure(f, xs), TyKind::Structure(g, ys)) if f == g => self.zip(xs, ys),
+            (&TyKind::Infer(i), &TyKind::Infer(j)) => Ok(self.table.unify_var_var(i, j)),
+            (&TyKind::Infer(var), ..) => Ok(self.table.unify_var_value(var, u.clone())),
+            (.., &TyKind::Infer(var)) => Ok(self.table.unify_var_value(var, t.clone())),
+            _ => Err(LogicError::NoSolution),
+        }
     }
 }
 
-impl<I: Interner> ena::unify::UnifyValue for InferenceValue<I> {
-    type Error = ena::unify::NoError;
-
-    /// Given two values, produce a new value that combines them.
-    /// If that is not possible, produce an error.
-    fn unify_values(x: &Self, y: &Self) -> Result<Self, Self::Error> {
-        Ok(match (x, y) {
-            (Self::Bound(..), Self::Bound(..)) => panic!("unifying two known values"),
-            (Self::Bound(..), Self::Unbound) => x.clone(),
-            (Self::Unbound, Self::Bound(..)) => y.clone(),
-            (Self::Unbound, Self::Unbound) => Self::Unbound,
-        })
-    }
-}
-
-impl<I: Interner> ena::unify::UnifyKey for InferVar<I> {
-    type Value = InferenceValue<I>;
-
-    fn index(&self) -> u32 {
-        self.idx.index() as u32
+impl<I: Interner> Zipper<I> for Unifier<'_, I> {
+    fn interner(&self) -> I {
+        self.table.interner
     }
 
-    fn from_index(idx: u32) -> Self {
-        Self::new(InferenceIdx::new(idx as usize))
-    }
-
-    fn tag() -> &'static str {
-        "InferenceVar"
-    }
-}
-
-pub struct InferCtxt<I: Interner> {
-    interner: I,
-    inner: RefCell<InferCtxtInner<I>>,
-}
-
-pub struct InferCtxtInner<I: Interner> {
-    tables: ena::unify::InPlaceUnificationTable<InferVar<I>>,
-    vars: Vec<InferVar<I>>,
-}
-
-impl<I: Interner> Default for InferCtxtInner<I> {
-    fn default() -> Self {
-        Self { tables: Default::default(), vars: Default::default() }
-    }
-}
-
-impl<I: Interner> InferCtxt<I> {
-    pub fn new(interner: I) -> Self {
-        Self { interner, inner: Default::default() }
+    fn zip_tys(&mut self, t: &Ty<I>, u: &Ty<I>) -> LogicResult<()> {
+        self.unify_ty_ty(t, u)
     }
 }

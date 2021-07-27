@@ -6,21 +6,20 @@ macro_rules! interned {
     ($get_data:ident => $data:ident, $intern:ident => $ty:ident, $interned:ident, $dbg_method:ident) => {
         #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
         pub struct $ty<I: Interner> {
-            pub interner: I,
             pub interned: I::$interned,
         }
 
         impl<I: Interner> $ty<I> {
             pub fn new(interner: I, interned: I::$interned) -> Self {
-                Self { interner, interned }
+                Self { interned }
             }
 
             pub fn intern(interner: I, data: $data<I>) -> Self {
                 Self::new(interner, interner.$intern(data))
             }
 
-            pub fn data(&self) -> &$data<I> {
-                self.interner.$get_data(self)
+            pub fn data(&self, interner: I) -> &$data<I> {
+                interner.$get_data(self)
             }
         }
 
@@ -40,7 +39,7 @@ macro_rules! interned {
 
         impl<I: Interner> Debug for $ty<I> {
             fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                self.interner.$dbg_method(self, f)
+                write!(f, "{:?}", self.interned)
             }
         }
     };
@@ -51,6 +50,7 @@ macro_rules! interned_slice {
         /// List of interned elements.
         #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
         pub struct $seq<I: Interner> {
+            // TODO is it better to hold the interner or to pass it in when required?
             pub interner: I,
             pub interned: I::$interned,
         }
@@ -120,23 +120,21 @@ macro_rules! interned_slice {
     };
 }
 
+impl<I: Interner> Ty<I> {
+    pub fn kind(&self, interner: I) -> &TyKind<I> {
+        &interner.ty_data(self).kind
+    }
+}
+
 interned!(goal_data => GoalData, intern_goal => Goal, InternedGoal, dbg_goal);
 interned!(clause_data => ClauseData, intern_clause => Clause, InternedClause, dbg_clause);
 interned!(ty_data => TyData, intern_ty => Ty, InternedTy, dbg_ty);
-interned!(generic_arg_data => GenericArgData, intern_generic_arg => GenericArg, InternedGenericArg, dbg_generic_arg);
 
 interned_slice!(
     Subst,
-    subst_data => GenericArg<I>,
+    subst_data => Ty<I>,
     intern_subst => InternedSubst,
     dbg_subst
-);
-
-interned_slice!(
-    Tys,
-    tys => Ty<I>,
-    intern_tys => InternedTys,
-    dbg_tys
 );
 
 interned_slice!(

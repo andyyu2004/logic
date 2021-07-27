@@ -2,7 +2,7 @@ use crate::*;
 
 pub trait Zipper<I: Interner>: Sized {
     fn interner(&self) -> I;
-    fn zip<Z: Zip<I>>(&mut self, a: &Z, b: &Z) -> LogicResult<()> {
+    fn zip<Z: Zip<I> + ?Sized>(&mut self, a: &Z, b: &Z) -> LogicResult<()> {
         Zip::zip_with(self, a, b)
     }
 
@@ -33,25 +33,6 @@ impl<'a, T: ?Sized + Zip<I>, I: Interner> Zip<I> for &'a T {
     }
 }
 
-impl<I: Interner> Zip<I> for GenericArgData<I> {
-    fn zip_with<Z: Zipper<I>>(zipper: &mut Z, a: &Self, b: &Self) -> LogicResult<()> {
-        match (a, b) {
-            (GenericArgData::Ty(t), GenericArgData::Ty(u)) => Zip::zip_with(zipper, t, u),
-        }
-    }
-}
-
-impl<I: Interner> Zip<I> for ClauseData<I> {
-    fn zip_with<Z: Zipper<I>>(zipper: &mut Z, a: &Self, b: &Self) -> LogicResult<()> {
-        match (a, b) {
-            (ClauseData::Implies(d0, g0), ClauseData::Implies(d1, g1)) => {
-                Zip::zip_with(zipper, d0, d1)?;
-                Zip::zip_with(zipper, g0, g1)
-            }
-        }
-    }
-}
-
 impl<I: Interner> Zip<I> for Ty<I> {
     fn zip_with<Z: Zipper<I>>(zipper: &mut Z, a: &Self, b: &Self) -> LogicResult<()> {
         zipper.zip_tys(a, b)
@@ -72,7 +53,7 @@ impl<I: Interner, T: Zip<I>> Zip<I> for [T] {
     }
 }
 
-impl<I: Interner> Zip<I> for Tys<I> {
+impl<I: Interner> Zip<I> for Subst<I> {
     fn zip_with<Z: Zipper<I>>(zipper: &mut Z, a: &Self, b: &Self) -> LogicResult<()> {
         Zip::zip_with(zipper, a.as_slice(), b.as_slice())
     }
@@ -83,7 +64,8 @@ macro_rules! zip_data {
     ($ty:ident) => {
         impl<I: Interner> Zip<I> for $ty<I> {
             fn zip_with<Z: Zipper<I>>(zipper: &mut Z, a: &Self, b: &Self) -> LogicResult<()> {
-                Zip::zip_with(zipper, a.data(), b.data())
+                let interner = zipper.interner();
+                Zip::zip_with(zipper, a.data(interner), b.data(interner))
             }
         }
     };
@@ -105,7 +87,7 @@ macro_rules! zip_eq {
 }
 
 zip_eq!(Ident);
+zip_eq!(InferVar<I>);
 
-zip_data!(GenericArg);
 zip_data!(Clause);
 zip_data!(Goal);

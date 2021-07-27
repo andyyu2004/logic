@@ -6,5 +6,6 @@ members = [
     "logic-ir",
     "logic-parse",
     "logic-util",
-    "logic-derive"
+    "logic-derive",
+    "logic-driver",
 ]

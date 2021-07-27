@@ -36,26 +36,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_term_test() -> ParseResult<()> {
+    fn test_parse_term() -> ParseResult<()> {
         let _term = parse_ty("Vec<T>")?;
         let _term = parse_ty("Vec<Result<i32, Box<T>>>")?;
         Ok(())
     }
 
     #[test]
-    fn parse_goal_test() -> ParseResult<()> {
+    fn test_parse_goal() -> ParseResult<()> {
         let _goal = parse_goal("i32: Clone")?;
         let _goal = parse_goal("Vec<T>: Trait<T>")?;
         Ok(())
     }
 
-    // #[test]
-    // fn parse_clause_test() {
-    //     let _fact = parser::ClauseParser::new().parse("cool(bob)").unwrap();
-    //     let _fact = parser::ClauseParser::new().parse("cool(X)").unwrap();
-    //     let _clause = parser::ClauseParser::new().parse("cool(bob) :- cool(frank)").unwrap();
-    //     let _clause = parser::ClauseParser::new().parse("cool(bob) :- cool(f), cool(jen)").unwrap();
-    // }
+    #[test]
+    fn parse_clause_test() -> ParseResult<()> {
+        let _clause = parse_clause("Vec<T>: Clone :- T: Clone")?;
+        let _clause = parse_clause("forall<T> { Vec<T>: Clone :- T: Clone }")?;
+        Ok(())
+    }
 
     // #[test]
     // fn parse_forall_clause_test() {

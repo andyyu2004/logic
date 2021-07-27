@@ -1,5 +1,6 @@
 use crate::symbol::Symbol;
 use std::fmt::{self, Display, Formatter};
+use std::hash::{Hash, Hasher};
 
 /// top level program
 #[derive(Debug, Eq, Clone, PartialEq)]
@@ -124,10 +125,22 @@ impl Display for Var {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]
+#[derive(Debug, Clone, Eq)]
 pub struct Ident {
     pub span: Span,
     pub symbol: Symbol,
+}
+
+impl PartialEq for Ident {
+    fn eq(&self, other: &Self) -> bool {
+        self.symbol == other.symbol
+    }
+}
+
+impl Hash for Ident {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.symbol.hash(state)
+    }
 }
 
 #[derive(Debug, Clone, Hash, PartialOrd, Ord, PartialEq, Eq)]

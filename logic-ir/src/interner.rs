@@ -16,8 +16,6 @@ pub trait Interner: Copy + Eq + Hash + Debug {
     type InternedClause: Internable;
     type InternedClauses: Internable;
     type InternedTy: Internable;
-    type InternedTys: Internable;
-    type InternedGenericArg: Internable;
     type InternedSubst: Internable;
 
     fn goal_data<'a>(self, goal: &'a Self::InternedGoal) -> &'a GoalData<Self>;
@@ -34,13 +32,7 @@ pub trait Interner: Copy + Eq + Hash + Debug {
     ) -> Self::InternedClauses;
 
     fn ty_data<'a>(self, ty: &'a Self::InternedTy) -> &'a TyData<Self>;
-    fn tys<'a>(self, tys: &'a Self::InternedTys) -> &'a [Ty<Self>];
+    fn subst_data<'a>(self, tys: &'a Self::InternedSubst) -> &'a [Ty<Self>];
     fn intern_ty(self, ty: TyData<Self>) -> Self::InternedTy;
-    fn intern_tys(self, tys: impl IntoIterator<Item = Ty<Self>>) -> Self::InternedTys;
-
-    fn generic_arg_data<'a>(self, arg: &'a Self::InternedGenericArg) -> &'a GenericArgData<Self>;
-    fn subst_data<'a>(self, subst: &'a Self::InternedSubst) -> &'a [GenericArg<Self>];
-    fn intern_generic_arg(self, arg: GenericArgData<Self>) -> Self::InternedGenericArg;
-    fn intern_subst(self, subst: impl IntoIterator<Item = GenericArg<Self>>)
-    -> Self::InternedSubst;
+    fn intern_subst(self, tys: impl IntoIterator<Item = Ty<Self>>) -> Self::InternedSubst;
 }

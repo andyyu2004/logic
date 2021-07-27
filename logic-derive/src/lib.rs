@@ -154,7 +154,7 @@ fn derive_any_visit(
 
     let body = s.each(|bi| {
         quote! {
-            ::logic_ir::try_break!(::logic_ir::visit::Visit::visit_with(#bi, visitor, outer_binder));
+            ::logic_ir::try_break!(::logic_ir::visit::Visit::visit_with(#bi, visitor));
         }
     });
 
@@ -170,7 +170,6 @@ fn derive_any_visit(
             fn #method_name <'i, B>(
                 &self,
                 visitor: &mut dyn ::logic_ir::visit::Visitor < 'i, #interner, BreakTy = B >,
-                outer_binder: ::logic_ir::DebruijnIndex,
             ) -> ::logic_ir::visit::ControlFlow<B>
             where
                 #interner: 'i
@@ -258,7 +257,7 @@ fn derive_fold(mut s: synstructure::Structure) -> TokenStream {
         vi.construct(|_, index| {
             let bind = &bindings[index];
             quote! {
-                ::logic_ir::fold::Fold::fold_with(#bind, folder, outer_binder)?
+                ::logic_ir::fold::Fold::fold_with(#bind, folder)?
             }
         })
     });
@@ -266,7 +265,7 @@ fn derive_fold(mut s: synstructure::Structure) -> TokenStream {
     let input = s.ast();
     let type_name = &input.ident;
 
-    let result = if kind == DeriveKind::FromHasInterner {
+    let folded = if kind == DeriveKind::FromHasInterner {
         let param = get_generic_param_name(input).unwrap();
         s.add_impl_generic(parse_quote! { _U })
             .add_where_predicate(
@@ -284,15 +283,9 @@ fn derive_fold(mut s: synstructure::Structure) -> TokenStream {
     s.bound_impl(
         quote!(::logic_ir::fold::Fold<#interner>),
         quote! {
-            type Result = #result;
+            type Folded = #folded;
 
-            fn fold_with<'i>(
-                self,
-                folder: &mut dyn ::logic_ir::fold::Folder < 'i, #interner >,
-                outer_binder: ::logic_ir::DebruijnIndex,
-            ) -> ::logic_ir::Fallible<Self::Result>
-            where
-                #interner: 'i,
+            fn fold_with<F: Folder<I>>(self, folder: &mut F) -> ::logic_ir::LogicResult<Self::Folded>
             {
                 Ok(match self { #body })
             }

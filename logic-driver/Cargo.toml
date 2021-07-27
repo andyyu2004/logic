@@ -1,0 +1,12 @@
+[package]
+name = "logic-driver"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+salsa = "0.16.1"
+anyhow = "1"
+logic-ir = { path = "../logic-ir" }
+logic-engine = { path = "../logic-engine" }
+logic-parse = { path = "../logic-parse" }
+

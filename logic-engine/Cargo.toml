@@ -6,7 +6,10 @@ edition = "2018"
 
 [dependencies]
 logic-ir = { path = "../logic-ir" }
-logic-parse = { path = "../logic-parse" }
-salsa = "0.16.0"
+salsa = "0.16.1"
 ena = "0.14"
 indexed_vec = "1.2.1"
+
+[dev-dependencies]
+logic-driver = { path = "../logic-driver" }
+anyhow = "1"
