@@ -18,9 +18,11 @@ impl<I: Interner> Zipper<I> for MatchZipper<I> {
         let can_match = match (a.kind(interner), b.kind(interner)) {
             (TyKind::Structure(f, xs), TyKind::Structure(g, ys)) =>
                 f.can_unify(interner, g) && xs.can_unify(interner, ys),
+            (TyKind::Bound(x), TyKind::Bound(y)) => todo!(),
             (TyKind::Structure(_, _), TyKind::Infer(_)) => todo!(),
             (TyKind::Infer(_), TyKind::Structure(_, _)) => todo!(),
             (TyKind::Infer(_), TyKind::Infer(_)) => todo!(),
+            _ => todo!(),
         };
 
         if can_match { Ok(()) } else { Err(LogicError::NoSolution) }

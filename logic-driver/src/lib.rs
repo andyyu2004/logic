@@ -47,7 +47,7 @@ fn ast(db: &dyn LoweringDatabase) -> ParseResult<ast::Program> {
 
 fn ir(db: &dyn LoweringDatabase) -> ParseResult<Program<LogicInterner>> {
     let ast = db.ast()?;
-    Ok(logic_ir::lower_ast(&ast))
+    Ok(logic_ir::lower_ast(&ast).expect("todo error handling"))
 }
 
 fn interner(_db: &dyn LoweringDatabase) -> LogicInterner {
@@ -67,6 +67,6 @@ fn query(
     let env = db.env()?;
     let solver = RecursiveSolver::new(LogicInterner, env);
     let parsed_goal = logic_parse::parse_goal(&unparsed_goal).expect("error handling");
-    let goal = logic_ir::lower_goal(&parsed_goal);
+    let goal = logic_ir::lower_goal(&parsed_goal).expect("todo error handling");
     solver.solve(&goal)
 }

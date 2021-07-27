@@ -8,10 +8,10 @@ extern crate logic_derive;
 extern crate self as logic_ir;
 
 // https://www.youtube.com/watch?v=RwBiHLoQ3E4&ab_channel=PapersWeLove
-mod ast_lowering;
 mod debug;
 mod interned;
 mod interner;
+mod lowering;
 
 mod fold;
 mod subst;
@@ -22,12 +22,12 @@ pub use fold::*;
 pub use subst::*;
 pub use zip::*;
 
-pub use ast_lowering::{lower_ast, lower_goal};
 pub use debug::DebugCtxt;
 use indexed_vec::{newtype_index, Idx};
 pub use interned::*;
 pub use interner::*;
 pub use logic_parse::{Ident, Symbol, Var};
+pub use lowering::{lower_ast, lower_goal};
 use std::fmt::{self, Debug, Display, Formatter};
 use std::marker::PhantomData;
 pub use std::ops::{Deref, DerefMut};
@@ -113,6 +113,13 @@ impl Interner for LogicInterner {
     }
 }
 
+newtype_index!(InferIdx);
+newtype_index!(DebruijnIdx);
+
+impl DebruijnIdx {
+    pub const ZERO: Self = DebruijnIdx(0);
+}
+
 /// top level program
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Program<I: Interner> {
@@ -148,7 +155,7 @@ impl<I: Interner> Debug for GoalData<I> {
     }
 }
 
-#[derive(Hash, Clone, PartialEq, Eq, Zip)]
+#[derive(Hash, Clone, PartialEq, Eq)]
 pub struct TyData<I: Interner> {
     // todo tyflags
     kind: TyKind<I>,
@@ -166,13 +173,30 @@ impl<I: Interner> Debug for TyData<I> {
     }
 }
 
-#[derive(Hash, Clone, PartialEq, Eq, Zip)]
+#[derive(Hash, Clone, PartialEq, Eq)]
 pub enum TyKind<I: Interner> {
-    Structure(Ident, Subst<I>),
+    Bound(BoundVar),
     Infer(InferVar<I>),
+    Structure(Ident, Subst<I>),
 }
 
-newtype_index!(InferIdx);
+#[derive(Hash, Clone, PartialEq, Eq, Copy)]
+pub struct BoundVar {
+    debruijn: DebruijnIdx,
+    index: usize,
+}
+
+impl BoundVar {
+    pub fn new(debruijn: DebruijnIdx, index: usize) -> Self {
+        Self { debruijn, index }
+    }
+}
+
+impl Debug for BoundVar {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}.{:?}", self.debruijn, self.index)
+    }
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct InferVar<I: Interner> {
@@ -246,6 +270,7 @@ impl<I: Interner> Debug for TyKind<I> {
             TyKind::Structure(functor, args) =>
                 write!(f, "{}{}", functor, util::fmt_generic_args(args.as_slice())),
             TyKind::Infer(var) => write!(f, "{:?}", var),
+            TyKind::Bound(bound) => write!(f, "{:?}", bound),
         }
     }
 }
@@ -300,9 +325,17 @@ impl<I: Interner> Debug for TraitRef<I> {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Variable<I: Interner> {
     phantom: PhantomData<I>,
+}
+
+impl<I: Interner> Debug for Variable<I> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // we don't really have a meaningful name to give each variable as they are referred
+        // to by de Bruijn indices
+        write!(f, "_")
+    }
 }
 
 impl<I: Interner> Variable<I> {

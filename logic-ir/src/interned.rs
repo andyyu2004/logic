@@ -10,12 +10,12 @@ macro_rules! interned {
         }
 
         impl<I: Interner> $ty<I> {
-            pub fn new(interner: I, interned: I::$interned) -> Self {
+            pub fn new(interned: I::$interned) -> Self {
                 Self { interned }
             }
 
             pub fn intern(interner: I, data: $data<I>) -> Self {
-                Self::new(interner, interner.$intern(data))
+                Self::new(interner.$intern(data))
             }
 
             pub fn data(&self, interner: I) -> &$data<I> {
@@ -57,6 +57,16 @@ macro_rules! interned_slice {
         impl<I: Interner> $seq<I> {
             pub fn intern(interner: I, iter: impl IntoIterator<Item = $elem>) -> Self {
                 Self { interner, interned: interner.$intern(iter) }
+            }
+
+            pub fn try_intern<E>(
+                interner: I,
+                iter: impl IntoIterator<Item = Result<$elem, E>>,
+            ) -> Result<Self, E> {
+                Ok(Self {
+                    interner,
+                    interned: interner.$intern(iter.into_iter().collect::<Result<Vec<_>, _>>()?),
+                })
             }
 
             pub fn empty(interner: I) -> Self {

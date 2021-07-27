@@ -59,7 +59,7 @@ pub TraitRef: TraitRef = {
 }
 
 pub Var: Var = {
-    <Ident> => Var::Ty(<>)
+    <Ident> => Var::new(<>)
 }
 
 Ident: Ident = {

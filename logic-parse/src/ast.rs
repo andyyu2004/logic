@@ -76,8 +76,14 @@ pub enum Constraint {
 }
 
 #[derive(Debug, Eq, Clone, PartialEq)]
-pub enum Var {
-    Ty(Ident),
+pub struct Var {
+    pub ident: Ident,
+}
+
+impl Var {
+    pub fn new(ident: Ident) -> Self {
+        Self { ident }
+    }
 }
 
 // does `ty` implement `trait`?
@@ -136,9 +142,7 @@ impl Display for Implication {
 
 impl Display for Var {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Var::Ty(ident) => write!(f, "{}", ident),
-        }
+        write!(f, "{}", self.ident)
     }
 }
 
