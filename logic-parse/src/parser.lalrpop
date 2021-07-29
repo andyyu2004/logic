@@ -16,7 +16,7 @@ pub Clause: Clause = {
 }
 
 pub Implication: Implication = {
-    "forall" "<" <vars:Comma1<Var>> ">" "{" <consequent:DomainGoal> ":-" <condition:Goal> "}" => Implication {
+    "for" "<" <vars:Comma1<Var>> ">" "{" <consequent:DomainGoal> ":-" <condition:Goal> "}" => Implication {
         vars,
         consequent,
         condition

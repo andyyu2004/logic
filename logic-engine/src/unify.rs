@@ -16,11 +16,40 @@ impl<I: Interner> Unifier<'_, I> {
         let interner = self.interner();
         match (t.kind(interner), u.kind(interner)) {
             (TyKind::Structure(f, xs), TyKind::Structure(g, ys)) if f == g => self.zip(xs, ys),
-            (&TyKind::Infer(i), &TyKind::Infer(j)) => Ok(self.table.unify_var_var(i, j)),
-            (&TyKind::Infer(var), ..) => Ok(self.table.unify_var_value(var, u.clone())),
-            (.., &TyKind::Infer(var)) => Ok(self.table.unify_var_value(var, t.clone())),
+            (&TyKind::Infer(i), &TyKind::Infer(j)) => Ok(self.unify_var_var(i, j)),
+            (&TyKind::Infer(var), ..) => Ok(self.unify_var_ty(var, u.clone())?),
+            (.., &TyKind::Infer(var)) => Ok(self.unify_var_ty(var, t.clone())?),
             _ => Err(LogicError::NoSolution),
         }
+    }
+
+    pub fn unify_var_ty(&mut self, var: InferVar<I>, ty: Ty<I>) -> LogicResult<()> {
+        debug!(var = ?var, ty = ?ty);
+        OccursCheck { interner: self.interner(), var }.fold(ty.clone())?;
+        self.table
+            .unify
+            .unify_var_value(var, InferenceValue::Known(ty))
+            .expect("should never fail");
+        Ok(())
+    }
+
+    pub fn unify_var_var(&mut self, x: InferVar<I>, y: InferVar<I>) {
+        self.table.unify.unify_var_var(x, y).unwrap()
+    }
+}
+
+struct OccursCheck<I: Interner> {
+    interner: I,
+    var: InferVar<I>,
+}
+
+impl<I: Interner> Folder<I> for OccursCheck<I> {
+    fn interner(&self) -> I {
+        self.interner
+    }
+
+    fn fold_infer_var(&mut self, infer: InferVar<I>) -> LogicResult<Ty<I>> {
+        if self.var == infer { Err(LogicError::NoSolution) } else { Ok(infer.to_ty(self.interner)) }
     }
 }
 

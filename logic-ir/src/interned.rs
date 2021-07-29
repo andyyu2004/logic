@@ -4,7 +4,7 @@ use std::fmt::{self, Debug, Formatter};
 
 macro_rules! interned {
     ($get_data:ident => $data:ident, $intern:ident => $ty:ident, $interned:ident, $dbg_method:ident) => {
-        #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+        #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, HasInterner)]
         pub struct $ty<I: Interner> {
             pub interned: I::$interned,
         }

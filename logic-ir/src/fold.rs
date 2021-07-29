@@ -1,19 +1,60 @@
 use crate::{Interner, LogicResult};
 use logic_ir::*;
 
-pub trait Fold<I: Interner>: Sized {
-    type Folded = Self;
+pub trait Fold<I: Interner>: Sized + Debug {
+    type Folded: Debug = Self;
     fn fold_with<F: Folder<I>>(self, folder: &mut F) -> LogicResult<Self::Folded>;
 }
 
-pub trait Folder<I: Interner> {
+pub trait FoldInner<I: Interner>: Fold<I> {
+    fn fold_inner_with<F: Folder<I>>(self, folder: &mut F) -> LogicResult<Self::Folded>;
+}
+
+pub trait Folder<I: Interner>: Sized {
     fn interner(&self) -> I;
-    fn fold_ty(&mut self, ty: Ty<I>) -> LogicResult<Ty<I>>;
+
+    fn fold_ty(&mut self, ty: Ty<I>) -> LogicResult<Ty<I>> {
+        ty.fold_inner_with(self)
+    }
+
+    fn fold_infer_var(&mut self, infer: InferVar<I>) -> LogicResult<Ty<I>> {
+        Ok(infer.to_ty(self.interner()))
+    }
+
+    fn fold<F: Fold<I>>(&mut self, foldable: F) -> LogicResult<F::Folded> {
+        foldable.fold_with(self)
+    }
 }
 
 impl<I: Interner> Fold<I> for Ty<I> {
     fn fold_with<F: Folder<I>>(self, folder: &mut F) -> LogicResult<Self::Folded> {
         folder.fold_ty(self)
+    }
+}
+
+impl<I: Interner> FoldInner<I> for Ty<I> {
+    fn fold_inner_with<F: Folder<I>>(self, folder: &mut F) -> LogicResult<Self::Folded> {
+        let interner = folder.interner();
+        let kind = match self.kind(interner) {
+            // TODO bound properly
+            TyKind::Infer(infer) => return folder.fold_infer_var(infer.clone()),
+            TyKind::Bound(bound) => TyKind::Bound(bound.clone()),
+            TyKind::Structure(f, xs) => TyKind::Structure(f.clone(), xs.clone().fold_with(folder)?),
+        };
+        Ok(kind.intern(interner))
+    }
+}
+
+impl<I, T> Fold<I> for Canonical<T>
+where
+    I: Interner,
+    T: Fold<I> + HasInterner<Interner = I>,
+    T::Folded: HasInterner<Interner = I>,
+{
+    type Folded = Canonical<T::Folded>;
+
+    fn fold_with<F: Folder<I>>(self, folder: &mut F) -> LogicResult<Self::Folded> {
+        Ok(Canonical { value: self.value.fold_with(folder)?, binders: self.binders })
     }
 }
 

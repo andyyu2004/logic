@@ -5,8 +5,9 @@ edition = "2018"
 
 [dependencies]
 salsa = "0.16.1"
+indexed_vec = "1.2.1"
 anyhow = "1"
-logic-ir = { path = "../logic-ir" }
+logic-ir = { version = "0.1.0", path = "../logic-ir" }
 logic-engine = { path = "../logic-engine" }
 logic-parse = { path = "../logic-parse" }
 

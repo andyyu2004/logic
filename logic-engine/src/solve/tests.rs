@@ -8,7 +8,7 @@ macro_rules! query {
 }
 
 #[test]
-fn test_solve_simple_implication() {
+fn test_solve_goal_by_simple_implication() {
     let program = r"
     Option<i32>: Clone :- Option<i32>: Copy.
     Option<i32>: Copy.
@@ -18,11 +18,11 @@ fn test_solve_simple_implication() {
 }
 
 #[test]
-fn test_solve() {
+fn test_solve_goal_by_instantiating_forall_clause() {
     let program = r"
-    forall<T> { Vec<T>: Clone :- T: Clone }.
+    for<T> { Vec<T>: Clone :- T: Clone }.
     i32: Clone.
     ";
     let solution = query!(program: "Vec<i32>: Clone");
-    dbg!(solution);
+    assert_eq!(solution.into_unique(), Subst::empty(LogicInterner));
 }

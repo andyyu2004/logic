@@ -1,5 +1,5 @@
 use logic_engine::{RecursiveSolver, Solution};
-use logic_ir::{Environment, LogicInterner, LogicResult, Program};
+use logic_ir::*;
 use logic_parse::{ast, ParseResult};
 use std::sync::Arc;
 
@@ -18,9 +18,9 @@ pub trait LoweringDatabase: salsa::Database {
     fn src(&self) -> Arc<String>;
     fn interner(&self) -> LogicInterner;
     fn ast(&self) -> ParseResult<ast::Program>;
-    fn ir(&self) -> ParseResult<Program<LogicInterner>>;
-    fn env(&self) -> LogicResult<Environment<LogicInterner>>;
-    fn query(&self, unparsed_goal: Arc<String>) -> LogicResult<Solution<LogicInterner>>;
+    fn ir(&self) -> ParseResult<Program<logic_ir::LogicInterner>>;
+    fn env(&self) -> logic_ir::LogicResult<Environment<LogicInterner>>;
+    fn query(&self, unparsed_goal: Arc<String>) -> logic_ir::LogicResult<Solution<LogicInterner>>;
 }
 
 #[salsa::database(Lowering, Logic)]
@@ -51,22 +51,27 @@ fn ir(db: &dyn LoweringDatabase) -> ParseResult<Program<LogicInterner>> {
 }
 
 fn interner(_db: &dyn LoweringDatabase) -> LogicInterner {
-    LogicInterner
+    logic_ir::LogicInterner
 }
 
-fn env(db: &dyn LoweringDatabase) -> LogicResult<Environment<LogicInterner>> {
+fn env(db: &dyn LoweringDatabase) -> logic_ir::LogicResult<logic_ir::Environment<LogicInterner>> {
     let ir = db.ir().expect("todo proper error handling");
-    let env = Environment::new(ir.clauses);
+    let env = logic_ir::Environment::new(ir.clauses);
     Ok(env)
 }
 
 fn query(
     db: &dyn LoweringDatabase,
     unparsed_goal: Arc<String>,
-) -> LogicResult<Solution<LogicInterner>> {
+) -> logic_ir::LogicResult<Solution<LogicInterner>> {
     let env = db.env()?;
-    let solver = RecursiveSolver::new(LogicInterner, env);
+    let solver = RecursiveSolver::new(logic_ir::LogicInterner, env);
     let parsed_goal = logic_parse::parse_goal(&unparsed_goal).expect("error handling");
     let goal = logic_ir::lower_goal(&parsed_goal).expect("todo error handling");
-    solver.solve(&goal)
+    // TODO canonicalize goal properly
+    let canonical_goal = Canonical { binders: Variables::empty(LogicInterner), value: goal };
+    solver.solve(&canonical_goal)
 }
+
+#[cfg(test)]
+mod tests;

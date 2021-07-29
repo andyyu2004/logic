@@ -4,6 +4,9 @@
 #[macro_use]
 extern crate logic_derive;
 
+#[macro_use]
+extern crate tracing;
+
 // for proc macro to be able to refer to this crate
 extern crate self as logic_ir;
 
@@ -131,6 +134,10 @@ impl<I: Interner> Program<I> {
     pub fn new(interner: I, clauses: Clauses<I>) -> Self {
         Self { interner, clauses }
     }
+
+    pub fn first_clause(&self) -> Clause<I> {
+        self.clauses.as_slice()[0].clone()
+    }
 }
 
 // intuitively "things we want to prove"
@@ -182,13 +189,17 @@ pub enum TyKind<I: Interner> {
 
 #[derive(Hash, Clone, PartialEq, Eq, Copy)]
 pub struct BoundVar {
-    debruijn: DebruijnIdx,
-    index: usize,
+    pub debruijn: DebruijnIdx,
+    pub index: usize,
 }
 
 impl BoundVar {
     pub fn new(debruijn: DebruijnIdx, index: usize) -> Self {
         Self { debruijn, index }
+    }
+
+    pub fn to_ty<I: Interner>(self, interner: I) -> Ty<I> {
+        TyKind::Bound(self).intern(interner)
     }
 }
 
@@ -202,6 +213,12 @@ impl Debug for BoundVar {
 pub struct InferVar<I: Interner> {
     idx: InferIdx,
     phantom: std::marker::PhantomData<I>,
+}
+
+impl<I: Interner> InferVar<I> {
+    pub fn to_ty(self, interner: I) -> Ty<I> {
+        TyKind::Infer(self).intern(interner)
+    }
 }
 
 impl<I: Interner> ena::unify::UnifyKey for InferVar<I> {
@@ -275,6 +292,13 @@ impl<I: Interner> Debug for TyKind<I> {
     }
 }
 
+// current a noop wrapper around a T
+#[derive(Debug, Clone)]
+pub struct Canonical<T: HasInterner> {
+    pub value: T,
+    pub binders: Variables<T::Interner>,
+}
+
 #[derive(Clone, PartialEq, Eq, Hash, HasInterner, Zip, Fold)]
 pub enum DomainGoal<I: Interner> {
     Holds(Constraint<I>),
@@ -303,8 +327,8 @@ impl<I: Interner> Debug for Constraint<I> {
 
 #[derive(Clone, PartialEq, Eq, Hash, Zip, Fold, HasInterner)]
 pub struct ImplConstraint<I: Interner> {
-    ty: Ty<I>,
-    trait_ref: TraitRef<I>,
+    pub ty: Ty<I>,
+    pub trait_ref: TraitRef<I>,
 }
 
 impl<I: Interner> Debug for ImplConstraint<I> {
@@ -377,10 +401,9 @@ pub enum ClauseData<I: Interner> {
 
 impl<I: Interner> Debug for ClauseData<I> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        todo!()
-        // match self {
-        //     ClauseData::Implies(implication) => write!(f, "{:?}", implication),
-        // }
+        match self {
+            ClauseData::Implies(implication) => write!(f, "{:?}", implication),
+        }
     }
 }
 

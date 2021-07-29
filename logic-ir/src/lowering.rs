@@ -151,6 +151,10 @@ impl AstLoweringCtx {
         implication: &ast::Implication,
     ) -> LoweringResult<Binders<Implication<LogicInterner>>> {
         let interner = self.interner;
+
+        // TODO deBruijn shifting etc, just checking there is no shifting to be done for now
+        assert!(self.env.variables.is_empty());
+
         let variables = implication
             .vars
             .iter()
@@ -170,3 +174,6 @@ impl AstLoweringCtx {
         Ok(Binders::new(Variables::intern(interner, variables), value))
     }
 }
+
+#[cfg(test)]
+mod tests;

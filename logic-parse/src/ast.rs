@@ -102,8 +102,8 @@ pub struct TraitRef {
 // "things we know"
 #[derive(Debug, Eq, Clone, PartialEq)]
 pub enum Clause {
-    Implies(Implication),
     DomainGoal(DomainGoal),
+    Implies(Implication),
     // if we can prove goal, then clause is true,
     // *NOTE* the lhs of implication is a clause in the chalk grammar,
     // do we lose any expressiveness by making it a domaingoal?
@@ -152,6 +152,12 @@ pub struct Ident {
     pub symbol: Symbol,
 }
 
+impl Ident {
+    pub fn unspanned(s: &str) -> Self {
+        Self { span: Span::new(0, 0), symbol: Symbol::from(s) }
+    }
+}
+
 impl PartialEq for Ident {
     fn eq(&self, other: &Self) -> bool {
         self.symbol == other.symbol
@@ -172,7 +178,7 @@ pub struct Span {
 
 impl Span {
     pub fn new(lo: usize, hi: usize) -> Self {
-        assert!(lo < hi);
+        assert!(lo <= hi);
         Self { lo, hi }
     }
 }

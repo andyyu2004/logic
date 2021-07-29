@@ -9,7 +9,10 @@ logic-ir = { path = "../logic-ir" }
 salsa = "0.16.1"
 ena = "0.14"
 indexed_vec = "1.2.1"
+tracing = "0.1"
 
 [dev-dependencies]
 logic-driver = { path = "../logic-driver" }
+tracing-subscriber = "0.2"
+tracing-test = "0.1"
 anyhow = "1"

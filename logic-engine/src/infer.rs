@@ -36,7 +36,7 @@ impl<'a, I: Interner> DerefMut for InferCtxt<'a, I> {
 #[derive(Debug)]
 pub struct InferenceTable<I: Interner> {
     pub interner: I,
-    unify: ena::unify::InPlaceUnificationTable<InferVar<I>>,
+    pub(super) unify: ena::unify::InPlaceUnificationTable<InferVar<I>>,
     vars: Vec<InferVar<I>>,
 }
 
@@ -49,25 +49,22 @@ impl<I: Interner> InferenceTable<I> {
         self.unify.new_key(InferenceValue::Unknown)
     }
 
-    pub fn unify_var_value(&mut self, var: InferVar<I>, ty: Ty<I>) {
-        // TODO occurs check
-        self.unify.unify_var_value(var, InferenceValue::Known(ty)).unwrap()
-    }
-
-    pub fn unify_var_var(&mut self, x: InferVar<I>, y: InferVar<I>) {
-        self.unify.unify_var_var(x, y).unwrap()
+    pub fn probe_var(&mut self, infer: InferVar<I>) -> Option<Ty<I>> {
+        match self.unify.probe_value(infer) {
+            InferenceValue::Known(ty) => Some(ty),
+            InferenceValue::Unknown => None,
+        }
     }
 
     pub fn from_canonical<T>(interner: I, canonical: Canonical<T>) -> (Self, Subst<I>, T)
     where
         T: Fold<I, Folded = T>,
+        T::Folded: HasInterner<Interner = I>,
     {
         let mut table = Self::new(interner);
 
-        // let subst = table.fresh_subst(canonical.binders.as_slice(interner));
-        let fresh_subst = table.fresh_subst(&[]);
+        let fresh_subst = table.fresh_subst(canonical.binders.as_slice());
         let value = fresh_subst.apply(interner, canonical.value);
-        // let value = canonical.value.fold_with(&mut &subst, 0).unwrap();
 
         (table, fresh_subst, value)
     }
@@ -82,24 +79,32 @@ impl<'a, I: Interner> InferCtxt<'a, I> {
         solver: &'a RecursiveSolver<I>,
         table: InferenceTable<I>,
         subst: Subst<I>,
-        domain_goal: Canonical<DomainGoal<I>>,
+        domain_goal: DomainGoal<I>,
         implication: Binders<Implication<I>>,
     ) -> LogicResult<Self> {
         let mut infcx = Self { solver, subst, table, obligations: vec![] };
-        dbg!(&implication);
-        let implication = infcx.instantiate(implication);
-        dbg!(&implication);
-        infcx.unify(&domain_goal.value, &implication.consequent)?;
+        debug!(implication = ?implication);
+        let instantiated = infcx.instantiate(implication);
+        debug!(instantiated = ?instantiated);
+        debug!("try unify `{:?}` with `{:?}`", instantiated.consequent, domain_goal);
+        infcx.unify(&domain_goal, &instantiated.consequent)?;
+        debug!("unified successful");
+        infcx.obligations.push(Obligation::Prove(instantiated.condition));
         Ok(infcx)
     }
 
-    fn prove(&mut self, goal: &Goal<I>) -> LogicResult<Solution<I>> {
-        self.solver.solve(goal)
+    fn prove(&mut self, subgoal: Goal<I>) -> LogicResult<Solution<I>> {
+        debug!(subgoal = ?subgoal);
+        let canonical_subgoal = self.canonicalize(subgoal);
+        let solution = self.solver.solve(&canonical_subgoal)?;
+        debug!(subgoal_solution = ?solution);
+        Ok(solution)
     }
 
     pub fn solve(mut self) -> LogicResult<Solution<I>> {
         while let Some(obligation) = self.obligations.pop() {
-            match &obligation {
+            debug!(obligation = ?obligation);
+            match obligation {
                 Obligation::Prove(goal) => match self.prove(goal)? {
                     Solution::Unique(solution_subst) =>
                         solution_subst.apply(self.interner, self.subst.clone()),
@@ -107,6 +112,7 @@ impl<'a, I: Interner> InferCtxt<'a, I> {
                 },
             };
         }
+        debug!(solution_subst = ?self.subst);
         Ok(Solution::Unique(self.subst))
     }
 

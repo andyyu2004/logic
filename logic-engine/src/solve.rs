@@ -1,4 +1,4 @@
-use crate::infer::{Canonical, InferCtxt, InferenceTable};
+use crate::infer::{InferCtxt, InferenceTable};
 use logic_ir::*;
 
 #[derive(Debug)]
@@ -14,14 +14,22 @@ impl<I: Interner> RecursiveSolver<I> {
         Self { interner, env }
     }
 
-    pub fn solve(&self, goal: &Goal<I>) -> SolutionResult<I> {
-        match self.interner.goal_data(goal) {
-            GoalData::DomainGoal(domain_goal) => self.solve_from_clauses(domain_goal),
-            _ => self.simplify(goal),
+    pub fn solve(&self, canonical_goal: &Canonical<Goal<I>>) -> SolutionResult<I> {
+        debug!(canonical_goal = ?canonical_goal);
+        let Canonical { value: goal, binders } = canonical_goal.clone();
+        match goal.data(self.interner) {
+            GoalData::DomainGoal(domain_goal) => {
+                let canonical_domain_goal = Canonical { binders, value: domain_goal.clone() };
+                self.solve_from_clauses(&canonical_domain_goal)
+            }
+            _ => self.simplify(canonical_goal),
         }
     }
 
-    pub fn solve_from_clauses(&self, domain_goal: &DomainGoal<I>) -> SolutionResult<I> {
+    pub fn solve_from_clauses(
+        &self,
+        canonical_domain_goal: &Canonical<DomainGoal<I>>,
+    ) -> SolutionResult<I> {
         let interner = self.interner;
         let mut current_solution: Option<Solution<I>> = None;
         for clause in &self.env.clauses {
@@ -34,18 +42,13 @@ impl<I: Interner> RecursiveSolver<I> {
                     // }
 
                     // temporary stuff to make stuff compile
-                    let canonical = Canonical { value: domain_goal.clone() };
 
-                    let (infer, subst, goal) = InferenceTable::from_canonical(interner, canonical);
+                    let (infer, subst, goal) =
+                        InferenceTable::from_canonical(interner, canonical_domain_goal.clone());
 
-                    if let Ok(solution) = InferCtxt::from_implication(
-                        self,
-                        infer,
-                        subst,
-                        Canonical { value: goal },
-                        implication.clone(),
-                    )
-                    .and_then(|infcx| infcx.solve())
+                    if let Ok(solution) =
+                        InferCtxt::from_implication(self, infer, subst, goal, implication.clone())
+                            .and_then(|infcx| infcx.solve())
                     {
                         match solution {
                             Solution::Unique(..) => match &current_solution {
@@ -67,8 +70,8 @@ impl<I: Interner> RecursiveSolver<I> {
         }
     }
 
-    pub fn simplify(&self, goal: &Goal<I>) -> SolutionResult<I> {
-        match goal.data(self.interner) {
+    pub fn simplify(&self, goal: &Canonical<Goal<I>>) -> SolutionResult<I> {
+        match goal.value.data(self.interner) {
             GoalData::DomainGoal(_) => todo!(),
             GoalData::And(_, _) => todo!(),
             GoalData::Or(_, _) => todo!(),

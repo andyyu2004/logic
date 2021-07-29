@@ -15,8 +15,12 @@ impl<I: Interner> Folder<I> for SubstFolder<'_, I> {
     }
 
     fn fold_ty(&mut self, ty: Ty<I>) -> LogicResult<Ty<I>> {
-        // TODO
-        Ok(ty.clone())
+        match ty.kind(self.interner) {
+            // TODO not a correct impl
+            TyKind::Bound(BoundVar { debruijn, index }) =>
+                Ok(self.subst.as_slice()[*index].clone()),
+            _ => ty.fold_inner_with(self),
+        }
     }
 }
 

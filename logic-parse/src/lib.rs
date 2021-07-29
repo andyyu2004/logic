@@ -52,7 +52,7 @@ mod tests {
     #[test]
     fn parse_clause_test() -> ParseResult<()> {
         let _clause = parse_clause("Vec<T>: Clone :- T: Clone")?;
-        let _clause = parse_clause("forall<T> { Vec<T>: Clone :- T: Clone }")?;
+        let _clause = parse_clause("for<T> { Vec<T>: Clone :- T: Clone }")?;
         Ok(())
     }
 
