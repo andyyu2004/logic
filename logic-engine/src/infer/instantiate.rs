@@ -10,13 +10,31 @@ impl<I: Interner> InferenceTable<I> {
         )
     }
 
+    fn instantiate_binders<T>(&mut self, binders: Variables<I>, value: T) -> T::Folded
+    where
+        T: Fold<I>,
+    {
+        let subst = self.fresh_subst(binders.as_slice());
+        subst.apply(self.interner, value)
+    }
+
+    pub fn instantiate_canonical<T: HasInterner<Interner = I>>(
+        &mut self,
+        canonical: Canonical<T>,
+    ) -> T::Folded
+    where
+        T: Fold<I> + HasInterner<Interner = I>,
+    {
+        let Canonical { binders, value } = canonical;
+        self.instantiate_binders(binders, value)
+    }
+
     /// instantiate bound value existentially
     pub fn instantiate<T>(&mut self, bound: Binders<T>) -> T::Folded
     where
         T: Fold<I> + HasInterner<Interner = I>,
     {
         let (binders, value) = bound.split();
-        let subst = self.fresh_subst(binders.as_slice());
-        subst.apply(self.interner, value)
+        self.instantiate_binders(binders, value)
     }
 }

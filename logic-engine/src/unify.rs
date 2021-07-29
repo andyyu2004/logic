@@ -24,7 +24,6 @@ impl<I: Interner> Unifier<'_, I> {
     }
 
     pub fn unify_var_ty(&mut self, var: InferVar<I>, ty: Ty<I>) -> LogicResult<()> {
-        debug!(var = ?var, ty = ?ty);
         OccursCheck { interner: self.interner(), var }.fold(ty.clone())?;
         self.table
             .unify

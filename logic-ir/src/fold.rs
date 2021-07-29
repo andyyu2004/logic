@@ -59,6 +59,8 @@ where
 }
 
 impl<I: Interner> Fold<I> for Subst<I> {
+    type Folded = Self;
+
     fn fold_with<F: Folder<I>>(self, folder: &mut F) -> LogicResult<Self::Folded> {
         let interner = folder.interner();
         let new_subst =

@@ -320,10 +320,13 @@ impl<I: Interner> Debug for TyKind<I> {
     }
 }
 
+/// A value is canonicalized by relabelling unbound existential variables
+/// from zero in order of appearance.
+/// The relabelled variables are in the binders field in order of labelling.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Canonical<T: HasInterner> {
-    pub value: T,
     pub binders: Variables<T::Interner>,
+    pub value: T,
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, HasInterner, Zip, Fold)]

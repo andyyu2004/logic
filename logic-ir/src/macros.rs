@@ -7,6 +7,13 @@ macro_rules! lower_goal {
 }
 
 #[macro_export]
+macro_rules! subst {
+    ($($ty:expr),*) => {
+        $crate::Subst::intern(LogicInterner, [$($ty)*])
+    };
+}
+
+#[macro_export]
 macro_rules! domain_goal {
     (impl $ty:expr, $trait_ref:expr) => {
         DomainGoal::Holds(Constraint::Implemented(ImplConstraint {

@@ -74,6 +74,11 @@ pub struct InferCtxtSnapshot<I: Interner> {
     table_snapshot: ena::unify::Snapshot<ena::unify::InPlace<InferVar<I>>>,
 }
 
+struct PositiveSolution<I: Interner> {
+    original_vars: Vec<InferVar<I>>,
+    solution: Solution<I>,
+}
+
 impl<'a, I: Interner> InferCtxt<'a, I> {
     pub fn from_implication(
         solver: &'a RecursiveSolver<I>,
@@ -87,8 +92,15 @@ impl<'a, I: Interner> InferCtxt<'a, I> {
         let instantiated = infcx.instantiate(implication);
         debug!(instantiated = ?instantiated);
         debug!("try unify `{:?}` with `{:?}`", instantiated.consequent, domain_goal);
-        infcx.unify(&domain_goal, &instantiated.consequent)?;
-        debug!("unified successful");
+        match infcx.unify(&domain_goal, &instantiated.consequent) {
+            Ok(()) => {
+                debug!("unified successfully");
+            }
+            Err(err) => {
+                debug!("not unifiable");
+                return Err(err);
+            }
+        }
         infcx.add_goal(instantiated.condition)?;
         Ok(infcx)
     }
@@ -106,11 +118,15 @@ impl<'a, I: Interner> InferCtxt<'a, I> {
 
     pub fn solve(mut self) -> LogicResult<Solution<I>> {
         while let Some(obligation) = self.obligations.pop() {
+            debug!(remaining_obligation = ?self.obligations);
             debug!(obligation = ?obligation);
             match obligation {
                 Obligation::Prove(goal) => {
-                    let solution = self.prove(goal)?;
-                    self.apply_solution(solution)?;
+                    let PositiveSolution { original_vars, solution } = self.prove(goal)?;
+                    match solution {
+                        Solution::Unique(subst) => self.apply_solution(original_vars, subst)?,
+                        Solution::Ambiguous => todo!(),
+                    }
                 }
             };
         }
@@ -121,12 +137,12 @@ impl<'a, I: Interner> InferCtxt<'a, I> {
         Ok(Solution::Unique(canonical_subst))
     }
 
-    fn prove(&mut self, subgoal: Goal<I>) -> LogicResult<Solution<I>> {
+    fn prove(&mut self, subgoal: Goal<I>) -> LogicResult<PositiveSolution<I>> {
         debug!(subgoal = ?subgoal);
-        let canonical_subgoal = self.canonicalize(subgoal);
-        let solution = self.solver.solve(&canonical_subgoal)?;
+        let Canonicalized { canonical, original_vars } = self.canonicalized(subgoal);
+        let solution = self.solver.solve(&canonical)?;
         debug!(subgoal_solution = ?solution);
-        Ok(solution)
+        Ok(PositiveSolution { solution, original_vars })
     }
 
     // add and simplify goal
@@ -149,13 +165,16 @@ impl<'a, I: Interner> InferCtxt<'a, I> {
         Ok(())
     }
 
-    fn apply_solution(&mut self, solution: Solution<I>) -> LogicResult<()> {
-        // TODO this is not correct
-        match solution {
-            Solution::Unique(solution_subst) =>
-                self.subst = solution_subst.value.apply(self.interner, self.subst.clone()),
-            Solution::Ambiguous => todo!(),
-        };
+    fn apply_solution(
+        &mut self,
+        original_vars: Vec<InferVar<I>>,
+        canonical_subst: Canonical<Subst<I>>,
+    ) -> LogicResult<()> {
+        let subst = self.instantiate_canonical(canonical_subst);
+        for (var, ty) in original_vars.into_iter().zip(subst.as_slice()) {
+            self.unify.unify_var_value(var, InferenceValue::Known(ty.clone())).unwrap();
+        }
+
         Ok(())
     }
 
