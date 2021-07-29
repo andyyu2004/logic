@@ -92,6 +92,12 @@ impl<I: Interner> Solution<I> {
     pub fn into_unique(self) -> Canonical<Subst<I>> {
         if let Self::Unique(v) = self { v } else { panic!() }
     }
+
+    pub fn into_subst(self) -> Subst<I> {
+        let canonical_subst = self.into_unique();
+        assert!(canonical_subst.binders.is_empty());
+        canonical_subst.value
+    }
 }
 
 #[cfg(test)]

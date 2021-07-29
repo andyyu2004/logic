@@ -1,4 +1,4 @@
-use logic_ir::{LogicInterner, Subst};
+use logic_ir::*;
 
 macro_rules! query {
     ($src:ident:  $goal:tt) => {{
@@ -14,16 +14,14 @@ fn test_solve_goal_by_simple_implication() {
     Option<i32>: Copy.
     ";
     let solution = query!(program: "Option<i32>: Clone");
-    // TODO check canonical binders?
-    assert_eq!(solution.into_unique().value, subst![]);
+    assert_eq!(solution.into_subst(), subst![]);
 }
 
 #[test]
 fn test_solve_simple_existence_goal() {
     let program = r"i32: Copy.";
     let solution = query!(program: "exists<T> { T: Copy }");
-    // TODO check canonical binders?
-    assert_eq!(solution.into_unique().value, subst![ty!(i32)]);
+    assert_eq!(solution.into_subst(), subst![ty!(i32)]);
 }
 
 #[test]
@@ -33,8 +31,7 @@ fn test_solve_goal_by_instantiating_forall_clause() {
     i32: Clone.
     ";
     let solution = query!(program: "Vec<i32>: Clone");
-    // TODO check canonical binders?
-    assert_eq!(solution.into_unique().value, subst![]);
+    assert_eq!(solution.into_subst(), subst![]);
 }
 
 #[tracing_test::traced_test]
@@ -46,8 +43,7 @@ fn test_solve_multistep_goal() {
     for<T> { T: PartialEq :- T: Eq }.
     ";
     let solution = query!(program: "exists<T> { Vec<T> : PartialEq }");
-    // TODO check canonical binders?
-    assert_eq!(solution.into_unique().value, subst![]);
+    assert_eq!(solution.into_subst(), subst![]);
 }
 
 // http://rust-lang.github.io/chalk/book/recursive/stack.html
@@ -59,6 +55,5 @@ fn test_solve_goal_chalk_example() {
     u32: B.
     ";
     let solution = query!(program: "exists<T> { Vec<T>: A }");
-    // TODO check canonical binders?
-    assert_eq!(solution.into_unique().value, subst![ty!(u32)]);
+    assert_eq!(solution.into_subst(), subst![ty!(u32)]);
 }

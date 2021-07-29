@@ -170,11 +170,14 @@ impl<'a, I: Interner> InferCtxt<'a, I> {
         original_vars: Vec<InferVar<I>>,
         canonical_subst: Canonical<Subst<I>>,
     ) -> LogicResult<()> {
+        assert!(
+            canonical_subst.binders.is_empty(),
+            "not sure when this will occur, panic for curiosity"
+        );
         let subst = self.instantiate_canonical(canonical_subst);
         for (var, ty) in original_vars.into_iter().zip(subst.as_slice()) {
             self.unify.unify_var_value(var, InferenceValue::Known(ty.clone())).unwrap();
         }
-
         Ok(())
     }
 
