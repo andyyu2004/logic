@@ -75,7 +75,7 @@ where
     type Folded = Binders<T::Folded>;
 
     fn fold_with<F: Folder<I>>(self, folder: &mut F) -> LogicResult<Self::Folded> {
-        Ok(Binders::new(self.binders, self.value.fold_with(folder)?))
+        Ok(Binders::new(self.binders, self.quantified.fold_with(folder)?))
     }
 }
 
@@ -110,3 +110,4 @@ macro_rules! copy_fold {
 }
 
 copy_fold!(Ident);
+copy_fold!(Quantifier);

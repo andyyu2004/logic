@@ -68,6 +68,10 @@ impl AstLoweringCtx {
                 GoalData::Implies(self.lower_clause(clause)?, self.lower_goal(goal)?),
             ast::Goal::And(lhs, rhs) => GoalData::And(self.lower_goal(lhs)?, self.lower_goal(rhs)?),
             ast::Goal::Or(lhs, rhs) => GoalData::Or(self.lower_goal(lhs)?, self.lower_goal(rhs)?),
+            ast::Goal::Exists(vars, subgoal) => GoalData::Quantified(
+                Quantifier::Exists,
+                self.enter_binders(vars, |this| this.lower_goal(subgoal))?,
+            ),
         };
         Ok(Goal::intern(self.interner, goal_data))
     }
@@ -146,32 +150,51 @@ impl AstLoweringCtx {
         Ok(Clause::intern(self.interner, clause_data))
     }
 
+    pub fn enter_binders<R>(
+        &mut self,
+        binder_slice: &[ast::Var],
+        f: impl FnOnce(&mut Self) -> LoweringResult<R>,
+    ) -> LoweringResult<Binders<R>>
+    where
+        R: HasInterner<Interner = LogicInterner>,
+    {
+        let expected_len = self.env.variables.len() + binder_slice.len();
+
+        let binders = binder_slice
+            .iter()
+            .cloned()
+            .enumerate()
+            .map(|(i, var)| (var.ident.symbol, BoundVar::new(DebruijnIdx::ZERO, i)));
+
+        let variables = self
+            .env
+            .variables
+            .iter()
+            .map(|(name, bound)| (name.clone(), bound.shifted_in()))
+            .chain(binders)
+            .collect::<HashMap<_, _>>();
+
+        assert_eq!(variables.len(), expected_len, "found shadowed parameter names");
+
+        let value = f(&mut Self { env: Env { variables }, interner: self.interner })?;
+        Ok(Binders {
+            binders: Variables::intern(
+                LogicInterner,
+                (0..binder_slice.len()).map(|_| Variable::new()),
+            ),
+            quantified: value,
+        })
+    }
+
     pub fn lower_implication(
         &mut self,
         implication: &ast::Implication,
     ) -> LoweringResult<Binders<Implication<LogicInterner>>> {
-        let interner = self.interner;
-
-        // TODO deBruijn shifting etc, just checking there is no shifting to be done for now
-        assert!(self.env.variables.is_empty());
-
-        let variables = implication
-            .vars
-            .iter()
-            .enumerate()
-            .map(|(i, var)| {
-                self.env
-                    .variables
-                    .insert(var.ident.symbol.clone(), BoundVar::new(DebruijnIdx::ZERO, i));
-                Variable::new()
-            })
-            .collect::<Vec<_>>();
-
-        let consequent = self.lower_domain_goal(&implication.consequent)?;
-        let condition = self.lower_goal(&implication.condition)?;
-
-        let value = Implication { consequent, condition };
-        Ok(Binders::new(Variables::intern(interner, variables), value))
+        self.enter_binders(&implication.vars, |ctxt| {
+            let consequent = ctxt.lower_domain_goal(&implication.consequent)?;
+            let condition = ctxt.lower_goal(&implication.condition)?;
+            Ok(Implication { consequent, condition })
+        })
     }
 }
 

@@ -10,6 +10,7 @@ impl<I: Interner> InferenceTable<I> {
         )
     }
 
+    /// instantiate bound value existentially
     pub fn instantiate<T>(&mut self, bound: Binders<T>) -> T::Folded
     where
         T: Fold<I> + HasInterner<Interner = I>,

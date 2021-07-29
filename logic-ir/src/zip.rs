@@ -99,6 +99,7 @@ macro_rules! zip_eq {
 }
 
 zip_eq!(Ident);
+zip_eq!(Quantifier);
 zip_eq!(InferVar<I>);
 
 zip_data!(Clause);

@@ -70,20 +70,16 @@ impl<I: Interner> RecursiveSolver<I> {
         }
     }
 
-    pub fn simplify(&self, goal: &Canonical<Goal<I>>) -> SolutionResult<I> {
-        match goal.value.data(self.interner) {
-            GoalData::DomainGoal(_) => todo!(),
-            GoalData::And(_, _) => todo!(),
-            GoalData::Or(_, _) => todo!(),
-            GoalData::Implies(_, _) => todo!(),
-            GoalData::True => Ok(Solution::Unique(Subst::empty(self.interner))),
-        }
+    pub fn simplify(&self, canonical_goal: &Canonical<Goal<I>>) -> SolutionResult<I> {
+        let (infer, subst, goal) =
+            InferenceTable::from_canonical(self.interner, canonical_goal.clone());
+        InferCtxt::from_goal(self, infer, subst, goal)?.solve()
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Solution<I: Interner> {
-    Unique(Subst<I>),
+    Unique(Canonical<Subst<I>>),
     Ambiguous,
 }
 
@@ -93,7 +89,7 @@ impl<I: Interner> Solution<I> {
         matches!(self, Self::Unique(..))
     }
 
-    pub fn into_unique(self) -> Subst<I> {
+    pub fn into_unique(self) -> Canonical<Subst<I>> {
         if let Self::Unique(v) = self { v } else { panic!() }
     }
 }

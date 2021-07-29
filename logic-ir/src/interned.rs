@@ -48,7 +48,7 @@ macro_rules! interned {
 macro_rules! interned_slice {
     ($seq:ident, $data:ident => $elem:ty, $intern:ident => $interned:ident) => {
         /// List of interned elements.
-        #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+        #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, HasInterner)]
         pub struct $seq<I: Interner> {
             pub interner: I,
             pub interned: I::$interned,

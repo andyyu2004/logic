@@ -42,8 +42,8 @@ pub enum Goal {
     And(Box<Goal>, Box<Goal>),
     Or(Box<Goal>, Box<Goal>),
     Implies(Box<Clause>, Box<Goal>),
-    // Quantified(Quantifier, Binders, Goal),,
-    // todo exists, impl, forall, implies
+    Exists(Vec<Var>, Box<Goal>), // Quantified(Quantifier, Binders, Goal),,
+                                 // todo exists, impl, forall, implies
 }
 
 impl Display for Goal {
@@ -53,6 +53,7 @@ impl Display for Goal {
             Goal::And(lhs, rhs) => write!(f, "{} & {}", lhs, rhs),
             Goal::Or(lhs, rhs) => write!(f, "{} | {}", lhs, rhs),
             Goal::Implies(clause, goal) => write!(f, "{} => {}", clause, goal),
+            Goal::Exists(vars, goal) => write!(f, "∃{}.{}", util::join(vars, ","), goal),
         }
     }
 }
@@ -121,6 +122,7 @@ impl Display for Clause {
     }
 }
 
+/// "forall" "<" <vars> ">" "{" <consequent> :- <condition> "}"
 #[derive(Debug, Eq, Clone, PartialEq)]
 pub struct Implication {
     pub vars: Vec<Var>,

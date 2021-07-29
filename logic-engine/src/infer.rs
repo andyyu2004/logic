@@ -89,8 +89,36 @@ impl<'a, I: Interner> InferCtxt<'a, I> {
         debug!("try unify `{:?}` with `{:?}`", instantiated.consequent, domain_goal);
         infcx.unify(&domain_goal, &instantiated.consequent)?;
         debug!("unified successful");
-        infcx.obligations.push(Obligation::Prove(instantiated.condition));
+        infcx.add_goal(instantiated.condition)?;
         Ok(infcx)
+    }
+
+    pub fn from_goal(
+        solver: &'a RecursiveSolver<I>,
+        table: InferenceTable<I>,
+        subst: Subst<I>,
+        goal: Goal<I>,
+    ) -> LogicResult<Self> {
+        let mut infcx = Self { solver, subst, table, obligations: vec![] };
+        infcx.add_goal(goal)?;
+        Ok(infcx)
+    }
+
+    pub fn solve(mut self) -> LogicResult<Solution<I>> {
+        while let Some(obligation) = self.obligations.pop() {
+            debug!(obligation = ?obligation);
+            match obligation {
+                Obligation::Prove(goal) => {
+                    let solution = self.prove(goal)?;
+                    self.apply_solution(solution)?;
+                }
+            };
+        }
+
+        let subst = self.subst.clone();
+        let canonical_subst = self.canonicalize(subst);
+        debug!(solution_subst = ?canonical_subst);
+        Ok(Solution::Unique(canonical_subst))
     }
 
     fn prove(&mut self, subgoal: Goal<I>) -> LogicResult<Solution<I>> {
@@ -101,19 +129,34 @@ impl<'a, I: Interner> InferCtxt<'a, I> {
         Ok(solution)
     }
 
-    pub fn solve(mut self) -> LogicResult<Solution<I>> {
-        while let Some(obligation) = self.obligations.pop() {
-            debug!(obligation = ?obligation);
-            match obligation {
-                Obligation::Prove(goal) => match self.prove(goal)? {
-                    Solution::Unique(solution_subst) =>
-                        solution_subst.apply(self.interner, self.subst.clone()),
-                    Solution::Ambiguous => todo!(),
-                },
-            };
-        }
-        debug!(solution_subst = ?self.subst);
-        Ok(Solution::Unique(self.subst))
+    // add and simplify goal
+    fn add_goal(&mut self, goal: Goal<I>) -> LogicResult<()> {
+        match goal.data(self.interner) {
+            GoalData::DomainGoal(..) => self.obligations.push(Obligation::Prove(goal)),
+            GoalData::Quantified(Quantifier::Exists, quantified_goal) => {
+                let instantiated_goal = self.instantiate(quantified_goal.clone());
+                self.add_goal(instantiated_goal)?;
+            }
+            GoalData::Quantified(Quantifier::ForAll, _) => todo!(),
+            GoalData::And(lhs, rhs) => {
+                self.add_goal(lhs.clone())?;
+                self.add_goal(rhs.clone())?;
+            }
+            GoalData::Implies(_, _) => todo!(),
+            GoalData::Or(_, _) => todo!(),
+            GoalData::True => {}
+        };
+        Ok(())
+    }
+
+    fn apply_solution(&mut self, solution: Solution<I>) -> LogicResult<()> {
+        // TODO this is not correct
+        match solution {
+            Solution::Unique(solution_subst) =>
+                self.subst = solution_subst.value.apply(self.interner, self.subst.clone()),
+            Solution::Ambiguous => todo!(),
+        };
+        Ok(())
     }
 
     pub fn snapshot(&mut self) -> InferCtxtSnapshot<I> {

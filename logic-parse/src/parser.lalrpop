@@ -16,7 +16,7 @@ pub Clause: Clause = {
 }
 
 pub Implication: Implication = {
-    "for" "<" <vars:Comma1<Var>> ">" "{" <consequent:DomainGoal> ":-" <condition:Goal> "}" => Implication {
+    "for" <vars:Angle<Var>> "{" <consequent:DomainGoal> ":-" <condition:Goal> "}" => Implication {
         vars,
         consequent,
         condition
@@ -31,6 +31,7 @@ pub Implication: Implication = {
 
 pub Goal: Goal = {
     <DomainGoal> => Goal::DomainGoal(<>),
+    "exists" <vars:Angle<Var>> "{" <goal:Goal> "}" => Goal::Exists(vars, Box::new(goal)),
     // <Goal> "," <Goal> => Goal::And(Box::new(<>), Box::new(<>)),
     // <Goal> ";" <Goal> => Goal::Or(Box::new(<>), Box::new(<>)),
     // TODO incomplete

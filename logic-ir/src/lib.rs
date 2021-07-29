@@ -5,7 +5,7 @@
 extern crate logic_derive;
 
 #[macro_use]
-extern crate tracing;
+mod macros;
 
 // for proc macro to be able to refer to this crate
 extern crate self as logic_ir;
@@ -120,7 +120,22 @@ newtype_index!(InferIdx);
 newtype_index!(DebruijnIdx);
 
 impl DebruijnIdx {
+    pub const ONE: Self = DebruijnIdx(1);
     pub const ZERO: Self = DebruijnIdx(0);
+
+    #[must_use]
+    pub fn shifted_in(self) -> Self {
+        self.shifted_in_by(Self::ONE)
+    }
+
+    pub fn shift_in(&mut self) {
+        *self = self.shifted_in()
+    }
+
+    #[must_use]
+    pub fn shifted_in_by(self, by: Self) -> Self {
+        Self::new(self.index() + by.index())
+    }
 }
 
 /// top level program
@@ -140,9 +155,16 @@ impl<I: Interner> Program<I> {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Quantifier {
+    Exists,
+    ForAll,
+}
+
 // intuitively "things we want to prove"
 #[derive(Clone, PartialEq, Eq, Hash, HasInterner, Zip, Fold)]
 pub enum GoalData<I: Interner> {
+    Quantified(Quantifier, Binders<Goal<I>>),
     DomainGoal(DomainGoal<I>),
     And(Goal<I>, Goal<I>),
     Or(Goal<I>, Goal<I>),
@@ -154,10 +176,12 @@ impl<I: Interner> Debug for GoalData<I> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             GoalData::DomainGoal(domain_goal) => write!(f, "{:?}", domain_goal),
+            GoalData::Quantified(quantifier, bound_goal) =>
+                write!(f, "{:?}{:?}", quantifier, bound_goal),
+            GoalData::True => write!(f, "⊤"),
             GoalData::And(_, _) => todo!(),
             GoalData::Or(_, _) => todo!(),
             GoalData::Implies(_, _) => todo!(),
-            GoalData::True => write!(f, "⊤"),
         }
     }
 }
@@ -196,6 +220,10 @@ pub struct BoundVar {
 impl BoundVar {
     pub fn new(debruijn: DebruijnIdx, index: usize) -> Self {
         Self { debruijn, index }
+    }
+
+    pub fn shifted_in(self) -> Self {
+        Self { debruijn: self.debruijn.shifted_in(), ..self }
     }
 
     pub fn to_ty<I: Interner>(self, interner: I) -> Ty<I> {
@@ -292,8 +320,7 @@ impl<I: Interner> Debug for TyKind<I> {
     }
 }
 
-// current a noop wrapper around a T
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Canonical<T: HasInterner> {
     pub value: T,
     pub binders: Variables<T::Interner>,
@@ -351,6 +378,7 @@ impl<I: Interner> Debug for TraitRef<I> {
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Variable<I: Interner> {
+    // nothing meaningful to store in here?
     phantom: PhantomData<I>,
 }
 
@@ -371,16 +399,16 @@ impl<I: Interner> Variable<I> {
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Binders<T: HasInterner> {
     pub binders: Variables<T::Interner>,
-    value: T,
+    quantified: T,
 }
 
 impl<T: HasInterner> Binders<T> {
     pub fn new(binders: Variables<T::Interner>, value: T) -> Self {
-        Self { binders, value }
+        Self { binders, quantified: value }
     }
 
     pub fn split(self) -> (Variables<T::Interner>, T) {
-        (self.binders, self.value)
+        (self.binders, self.quantified)
     }
 
     pub fn empty(interner: T::Interner, value: T) -> Self {
@@ -390,7 +418,7 @@ impl<T: HasInterner> Binders<T> {
 
 impl<T: HasInterner + Debug> Debug for Binders<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "for<{}> {{ {:?} }}", util::join_dbg(&self.binders, ","), self.value)
+        write!(f, "<{}> {{ {:?} }}", util::join_dbg(&self.binders, ","), self.quantified)
     }
 }
 
